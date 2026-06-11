@@ -1,0 +1,96 @@
+<h2>adler TUI — Layout Design</h2>
+<p class="subtitle">Section 4 of 4 — Which layout works best for the dashboard?</p>
+
+<div class="options">
+
+  <!-- Option A: Split layout -->
+  <div class="option" data-choice="split" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Split — Span tree + detail panel</h3>
+      <p style="font-size:0.8rem;opacity:0.7;margin-bottom:0.75rem;">Left: live span tree. Right: selected span's output. Panels at bottom for context and events.</p>
+      <div class="mockup">
+        <div class="mockup-header">adler &nbsp;·&nbsp; session: abc123 &nbsp;·&nbsp; goal: Implement payment feature &nbsp;·&nbsp; <span style="color:#a8d8a8;">active</span></div>
+        <div class="mockup-body" style="padding:0; display:flex; flex-direction:column; font-family:monospace; font-size:0.72rem; min-height: 180px;">
+          <div style="display:flex; flex:1; border-bottom: 1px solid #333;">
+            <!-- Span tree -->
+            <div style="width:35%; border-right:1px solid #333; padding:0.5rem; overflow:hidden;">
+              <div style="color:#666; font-size:0.65rem; margin-bottom:0.4rem;">SPANS</div>
+              <div style="color:#a8d8a8;">● opencode:build</div>
+              <div style="color:#666; padding-left:0.5rem; font-size:0.68rem;">↳ research step</div>
+              <div style="color:#f5c842; background:#1a2a1a; padding: 0 0.25rem;">⟳ opencode:plan</div>
+              <div style="color:#f08080;">✗ opencode:lint</div>
+            </div>
+            <!-- Output panel -->
+            <div style="flex:1; padding:0.5rem; overflow:hidden;">
+              <div style="color:#666; font-size:0.65rem; margin-bottom:0.4rem;">OUTPUT &nbsp;·&nbsp; opencode:plan</div>
+              <div style="color:#ccc;">Reading context files...</div>
+              <div style="color:#ccc;">Analyzing codebase structure</div>
+              <div style="color:#ccc;">Creating implementation plan</div>
+              <div style="color:#7c9ef5;">▊</div>
+            </div>
+          </div>
+          <!-- Bottom strip -->
+          <div style="display:flex; border-bottom:1px solid #333; max-height:50px; overflow:hidden;">
+            <div style="width:50%; border-right:1px solid #333; padding:0.4rem 0.5rem;">
+              <div style="color:#666; font-size:0.65rem;">CONTEXT</div>
+              <div style="color:#f5c842; font-size:0.68rem;">[goal] Implement payment feature</div>
+              <div style="color:#7c9ef5; font-size:0.68rem;">[url] stripe.com/docs</div>
+            </div>
+            <div style="flex:1; padding:0.4rem 0.5rem;">
+              <div style="color:#666; font-size:0.65rem;">EVENTS</div>
+              <div style="color:#ccc; font-size:0.68rem;">12:34:01 agent.started opencode:plan</div>
+              <div style="color:#f08080; font-size:0.68rem;">12:33:55 agent.failed opencode:lint</div>
+            </div>
+          </div>
+          <div style="padding:0.25rem 0.5rem; color:#666; font-size:0.65rem;">
+            ↑↓ navigate &nbsp;·&nbsp; enter expand &nbsp;·&nbsp; a assistant &nbsp;·&nbsp; q quit
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option B: Tabbed -->
+  <div class="option" data-choice="tabbed" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Tabbed — switch between views</h3>
+      <p style="font-size:0.8rem;opacity:0.7;margin-bottom:0.75rem;">Header always visible. Tab key switches between Spans, Output, Context, Events panels — full screen each.</p>
+      <div class="mockup">
+        <div class="mockup-header">adler &nbsp;·&nbsp; session: abc123 &nbsp;·&nbsp; <span style="color:#a8d8a8;">active</span></div>
+        <div class="mockup-body" style="padding:0; font-family:monospace; font-size:0.72rem; min-height:180px; display:flex; flex-direction:column;">
+          <div style="display:flex; border-bottom:1px solid #333; padding:0 0.5rem;">
+            <div style="padding:0.3rem 0.75rem; background:#1a2a1a; color:#a8d8a8; border-bottom:2px solid #a8d8a8;">Spans</div>
+            <div style="padding:0.3rem 0.75rem; color:#666;">Output</div>
+            <div style="padding:0.3rem 0.75rem; color:#666;">Context</div>
+            <div style="padding:0.3rem 0.75rem; color:#666;">Events</div>
+          </div>
+          <div style="flex:1; padding:0.5rem;">
+            <div style="color:#a8d8a8;">● opencode:build &nbsp;<span style="color:#666;font-size:0.68rem;">done · 2m 14s</span></div>
+            <div style="padding-left:1rem;color:#a8d8a8;">● research step &nbsp;<span style="color:#666;font-size:0.68rem;">done</span></div>
+            <div style="color:#f5c842;">⟳ opencode:plan &nbsp;<span style="color:#666;font-size:0.68rem;">running · 0m 43s</span></div>
+            <div style="color:#f08080;">✗ opencode:lint &nbsp;<span style="color:#666;font-size:0.68rem;">failed · exit 1</span></div>
+          </div>
+          <div style="padding:0.25rem 0.5rem; color:#666; font-size:0.65rem; border-top:1px solid #333;">
+            tab switch view &nbsp;·&nbsp; enter select &nbsp;·&nbsp; a assistant &nbsp;·&nbsp; q quit
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:1.5rem; background: var(--bg-secondary,#1a1a2e); border:1px solid #333; border-radius:8px; padding:1rem; font-size:0.82rem; line-height:1.8;">
+  <strong>Ink component tree (same for both layouts):</strong>
+  <div style="font-family:monospace; margin-top:0.5rem; color:#a8d8a8; font-size:0.78rem; line-height:2;">
+    &lt;App&gt; &nbsp;<span style="color:#666;">← SDK subscription, full session state</span><br>
+    &nbsp;&nbsp;&lt;Header&gt; &nbsp;<span style="color:#666;">← session id, goal, status</span><br>
+    &nbsp;&nbsp;&lt;SpanTree&gt; &nbsp;<span style="color:#666;">← recursive, keyboard nav</span><br>
+    &nbsp;&nbsp;&lt;OutputPanel&gt; &nbsp;<span style="color:#666;">← stdout lines for selected span</span><br>
+    &nbsp;&nbsp;&lt;ContextPanel&gt; &nbsp;<span style="color:#666;">← context items list</span><br>
+    &nbsp;&nbsp;&lt;EventLog&gt; &nbsp;<span style="color:#666;">← recent events</span><br>
+    &nbsp;&nbsp;&lt;StatusBar&gt; &nbsp;<span style="color:#666;">← keybindings</span>
+  </div>
+</div>

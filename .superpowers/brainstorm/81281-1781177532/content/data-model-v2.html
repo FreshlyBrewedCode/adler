@@ -1,0 +1,103 @@
+<h2>adler — Revised Data Model</h2>
+<p class="subtitle">Section 2 of 4 (revised) — Span-based observability model</p>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+
+  <!-- Left: table schemas -->
+  <div style="display: flex; flex-direction: column; gap: 1rem;">
+
+    <div style="background: var(--bg-secondary, #1a1a2e); border: 1px solid #7c9ef5; border-radius: 8px; padding: 1rem;">
+      <div class="label" style="color:#7c9ef5;">SESSION</div>
+      <div style="font-family: monospace; font-size: 0.78rem; line-height: 1.9; margin-top: 0.5rem;">
+        <div><span style="color:#f5c842;">id</span> TEXT PK</div>
+        <div>goal TEXT</div>
+        <div>status TEXT &nbsp;<span style="opacity:0.5;font-size:0.7rem;">active|completed|archived</span></div>
+        <div>working_dir TEXT</div>
+        <div>created_at INTEGER</div>
+      </div>
+    </div>
+
+    <div style="background: var(--bg-secondary, #1a1a2e); border: 1px solid #a8d8a8; border-radius: 8px; padding: 1rem;">
+      <div class="label" style="color:#a8d8a8;">SPAN &nbsp;<span style="font-size:0.7rem;opacity:0.6;">— every unit of work</span></div>
+      <div style="font-family: monospace; font-size: 0.78rem; line-height: 1.9; margin-top: 0.5rem;">
+        <div><span style="color:#f5c842;">id</span> TEXT PK</div>
+        <div><span style="color:#7c9ef5;">session_id</span> TEXT FK</div>
+        <div><span style="color:#a8d8a8;">parent_id</span> TEXT FK? <span style="opacity:0.5;font-size:0.7rem;">← nesting</span></div>
+        <div>kind TEXT</div>
+        <div style="opacity:0.5;font-size:0.7rem;margin-left:1rem;">agent | workflow | step | hook | ...</div>
+        <div>name TEXT</div>
+        <div>status TEXT</div>
+        <div style="opacity:0.5;font-size:0.7rem;margin-left:1rem;">pending|running|done|failed</div>
+        <div>started_at INTEGER</div>
+        <div>finished_at INTEGER</div>
+        <div>data JSON <span style="opacity:0.5;font-size:0.7rem;">← kind-specific fields</span></div>
+        <div style="opacity:0.5;font-size:0.7rem;margin-left:1rem;">agent: {prompt, agent_type, pid, exit_code}</div>
+        <div style="opacity:0.5;font-size:0.7rem;margin-left:1rem;">step: {workflow, step_name, index}</div>
+      </div>
+    </div>
+
+    <div style="background: var(--bg-secondary, #1a1a2e); border: 1px solid #f08080; border-radius: 8px; padding: 1rem;">
+      <div class="label" style="color:#f08080;">EVENT &nbsp;<span style="font-size:0.7rem;opacity:0.6;">— everything that happened</span></div>
+      <div style="font-family: monospace; font-size: 0.78rem; line-height: 1.9; margin-top: 0.5rem;">
+        <div><span style="color:#f5c842;">id</span> INTEGER PK</div>
+        <div><span style="color:#7c9ef5;">session_id</span> TEXT FK</div>
+        <div><span style="color:#a8d8a8;">span_id</span> TEXT FK? <span style="opacity:0.5;font-size:0.7rem;">← nullable</span></div>
+        <div>type TEXT <span style="opacity:0.5;font-size:0.7rem;">← open-ended</span></div>
+        <div style="opacity:0.5;font-size:0.7rem;margin-left:1rem;">agent.output | log.info | log.warn</div>
+        <div style="opacity:0.5;font-size:0.7rem;margin-left:1rem;">context.added | span.started | ...</div>
+        <div>data JSON</div>
+        <div>timestamp INTEGER</div>
+      </div>
+    </div>
+
+    <div style="background: var(--bg-secondary, #1a1a2e); border: 1px solid #f5c842; border-radius: 8px; padding: 1rem;">
+      <div class="label" style="color:#f5c842;">CONTEXT_ITEM &nbsp;<span style="font-size:0.7rem;opacity:0.6;">— unchanged</span></div>
+      <div style="font-family: monospace; font-size: 0.78rem; line-height: 1.9; margin-top: 0.5rem;">
+        <div><span style="color:#f5c842;">id</span> TEXT PK</div>
+        <div><span style="color:#7c9ef5;">session_id</span> TEXT FK</div>
+        <div>type TEXT &nbsp;&nbsp;<span style="opacity:0.5;font-size:0.7rem;">url | file | text</span></div>
+        <div>label TEXT</div>
+        <div>description TEXT</div>
+        <div>value TEXT</div>
+        <div>created_at INTEGER</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right: span tree example -->
+  <div style="display: flex; flex-direction: column; gap: 1rem;">
+
+    <div>
+      <h3>Example span tree</h3>
+      <div style="font-family: monospace; font-size: 0.78rem; background: var(--bg-secondary, #1a1a2e); border: 1px solid #333; border-radius: 8px; padding: 1.25rem; line-height: 2;">
+        <div style="color:#7c9ef5;">session: "Implement payment feature"</div>
+        <div style="color:#a8d8a8; padding-left:1rem;">└─ span: workflow:payment <span style="color:#666;">[kind=workflow]</span></div>
+        <div style="padding-left:2.5rem; color:#ccc;">├─ span: step:research <span style="color:#666;">[step]</span></div>
+        <div style="padding-left:3.5rem; color:#ccc;">└─ span: opencode:plan <span style="color:#666;">[agent]</span></div>
+        <div style="padding-left:4rem; color:#f08080; font-size:0.72rem;">├─ event: agent.output "Reading..."</div>
+        <div style="padding-left:4rem; color:#f08080; font-size:0.72rem;">└─ event: agent.output "Done"</div>
+        <div style="padding-left:2.5rem; color:#ccc;">└─ span: step:implement <span style="color:#666;">[step]</span></div>
+        <div style="padding-left:3.5rem; color:#ccc; opacity:0.7;">├─ span: agent-1 <span style="color:#a8d8a8;">← parallel</span></div>
+        <div style="padding-left:3.5rem; color:#ccc; opacity:0.7;">└─ span: agent-2 <span style="color:#a8d8a8;">← parallel</span></div>
+      </div>
+    </div>
+
+    <div>
+      <h3>What this enables</h3>
+      <ul style="font-size:0.85rem; line-height:2; margin:0; padding-left:1.2rem;">
+        <li>Add workflows in Phase 3 — <strong>zero schema change</strong></li>
+        <li>Add hooks in Phase 3 — just a new span <code>kind</code></li>
+        <li>Parallel agents visible as sibling spans</li>
+        <li>TUI shows a live span tree, not just a flat list</li>
+        <li>New event types added freely — no migration</li>
+        <li>Full replay: reconstruct any session from events</li>
+      </ul>
+    </div>
+
+    <div style="background: #1a2a1a; border: 1px solid #2a4a2a; border-radius: 8px; padding: 1rem; font-size: 0.82rem; line-height: 1.8;">
+      <strong>Storage interface still applies:</strong> the daemon accesses all four tables through a <code>Storage</code> abstraction. SQLite is one implementation — anything can be swapped in behind it.
+    </div>
+
+  </div>
+</div>

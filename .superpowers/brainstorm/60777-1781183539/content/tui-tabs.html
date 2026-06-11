@@ -1,0 +1,108 @@
+<h2>adler TUI — Tab Contents</h2>
+<p class="subtitle">5 tabs — does each show the right information?</p>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom:1rem;">
+
+  <!-- Overview -->
+  <div class="mockup">
+    <div class="mockup-header" style="font-family:monospace; font-size:0.72rem;">
+      <span style="color:#a8d8a8; border-bottom:2px solid #a8d8a8; padding-bottom:2px;">Overview</span>
+      &nbsp;<span style="color:#555;">Context &nbsp;Agents &nbsp;Traces &nbsp;Logs</span>
+    </div>
+    <div class="mockup-body" style="font-family:monospace; font-size:0.72rem; min-height:140px;">
+      <div style="color:#666; font-size:0.65rem; margin-bottom:0.5rem;">SESSION</div>
+      <div style="color:#ccc; margin-bottom:0.15rem;"><span style="color:#666;">goal &nbsp;&nbsp;&nbsp;</span> Implement payment feature</div>
+      <div style="color:#ccc; margin-bottom:0.15rem;"><span style="color:#666;">status &nbsp;</span> <span style="color:#a8d8a8;">active</span></div>
+      <div style="color:#ccc; margin-bottom:0.75rem;"><span style="color:#666;">dir &nbsp;&nbsp;&nbsp;&nbsp;</span> ~/git/myapp</div>
+      <div style="color:#666; font-size:0.65rem; margin-bottom:0.5rem;">ACTIVITY</div>
+      <div style="color:#ccc; margin-bottom:0.15rem;">3 agents ran &nbsp;·&nbsp; 1 running &nbsp;·&nbsp; 1 failed</div>
+      <div style="color:#666; font-size:0.65rem; margin-top:0.75rem; margin-bottom:0.5rem;">RECENT</div>
+      <div style="color:#f5c842;">⟳ opencode:plan &nbsp;<span style="color:#666;">running · 0m 43s</span></div>
+      <div style="color:#a8d8a8;">✓ opencode:build &nbsp;<span style="color:#666;">done · 2m 14s</span></div>
+      <div style="color:#f08080;">✗ opencode:lint &nbsp;<span style="color:#666;">failed · exit 1</span></div>
+    </div>
+  </div>
+
+  <!-- Context -->
+  <div class="mockup">
+    <div class="mockup-header" style="font-family:monospace; font-size:0.72rem;">
+      <span style="color:#555;">Overview &nbsp;</span>
+      <span style="color:#a8d8a8; border-bottom:2px solid #a8d8a8; padding-bottom:2px;">Context</span>
+      <span style="color:#555;">&nbsp; Agents &nbsp;Traces &nbsp;Logs</span>
+    </div>
+    <div class="mockup-body" style="font-family:monospace; font-size:0.72rem; min-height:140px;">
+      <div style="color:#666; font-size:0.65rem; margin-bottom:0.5rem;">3 ITEMS</div>
+      <div style="background:#1a2a1a; padding:0.35rem 0.5rem; border-radius:4px; margin-bottom:0.4rem;">
+        <div style="color:#f5c842;">[goal]</div>
+        <div style="color:#ccc;">Implement payment feature</div>
+      </div>
+      <div style="padding:0.35rem 0.5rem; margin-bottom:0.4rem;">
+        <div style="color:#7c9ef5;">[url] &nbsp;<span style="color:#666; font-size:0.68rem;">docs</span></div>
+        <div style="color:#ccc;">https://stripe.com/docs</div>
+      </div>
+      <div style="padding:0.35rem 0.5rem;">
+        <div style="color:#f08080;">[file] &nbsp;<span style="color:#666; font-size:0.68rem;">spec</span></div>
+        <div style="color:#ccc;">./docs/payment-spec.md</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Agents -->
+  <div class="mockup">
+    <div class="mockup-header" style="font-family:monospace; font-size:0.72rem;">
+      <span style="color:#555;">Overview &nbsp;Context &nbsp;</span>
+      <span style="color:#a8d8a8; border-bottom:2px solid #a8d8a8; padding-bottom:2px;">Agents</span>
+      <span style="color:#555;">&nbsp; Traces &nbsp;Logs</span>
+    </div>
+    <div class="mockup-body" style="font-family:monospace; font-size:0.72rem; min-height:140px;">
+      <div style="color:#666; font-size:0.65rem; margin-bottom:0.5rem;">FLAT LIST — select to see output</div>
+      <div style="background:#1a2a1a; padding:0.3rem 0.5rem; border-radius:4px; margin-bottom:0.3rem; border-left: 2px solid #f5c842;">
+        <div style="display:flex; justify-content:space-between;"><span style="color:#f5c842;">⟳ opencode:plan</span><span style="color:#666;">0m 43s</span></div>
+        <div style="color:#666; font-size:0.68rem; white-space:nowrap; overflow:hidden;">Create an implementation plan based on...</div>
+      </div>
+      <div style="padding:0.3rem 0.5rem; margin-bottom:0.3rem; border-left: 2px solid #a8d8a8;">
+        <div style="display:flex; justify-content:space-between;"><span style="color:#a8d8a8;">✓ opencode:build</span><span style="color:#666;">2m 14s</span></div>
+        <div style="color:#666; font-size:0.68rem; white-space:nowrap; overflow:hidden;">Implement the payment module...</div>
+      </div>
+      <div style="padding:0.3rem 0.5rem; border-left: 2px solid #f08080;">
+        <div style="display:flex; justify-content:space-between;"><span style="color:#f08080;">✗ opencode:lint</span><span style="color:#666;">exit 1</span></div>
+        <div style="color:#666; font-size:0.68rem; white-space:nowrap; overflow:hidden;">Run linting on the codebase...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Traces -->
+  <div class="mockup">
+    <div class="mockup-header" style="font-family:monospace; font-size:0.72rem;">
+      <span style="color:#555;">Overview &nbsp;Context &nbsp;Agents &nbsp;</span>
+      <span style="color:#a8d8a8; border-bottom:2px solid #a8d8a8; padding-bottom:2px;">Traces</span>
+      <span style="color:#555;">&nbsp; Logs</span>
+    </div>
+    <div class="mockup-body" style="font-family:monospace; font-size:0.72rem; min-height:140px;">
+      <div style="color:#666; font-size:0.65rem; margin-bottom:0.5rem;">SPAN TREE</div>
+      <div style="color:#7c9ef5;">◆ session <span style="color:#666; font-size:0.68rem;">abc123 · active</span></div>
+      <div style="padding-left:1rem; color:#a8d8a8;">✓ opencode:build <span style="color:#666; font-size:0.68rem;">agent · 2m 14s</span></div>
+      <div style="padding-left:1rem; color:#f5c842;">⟳ opencode:plan <span style="color:#666; font-size:0.68rem;">agent · 0m 43s</span></div>
+      <div style="padding-left:2rem; color:#ccc; font-size:0.68rem;">Creating implementation plan...</div>
+      <div style="padding-left:2rem; color:#ccc; font-size:0.68rem;">Reading stripe docs...</div>
+      <div style="padding-left:1rem; color:#f08080;">✗ opencode:lint <span style="color:#666; font-size:0.68rem;">agent · exit 1</span></div>
+      <div style="padding-left:2rem; color:#f08080; font-size:0.68rem;">ESLint: 3 errors in payment.ts</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Logs — full width -->
+<div class="mockup">
+  <div class="mockup-header" style="font-family:monospace; font-size:0.72rem;">
+    <span style="color:#555;">Overview &nbsp;Context &nbsp;Agents &nbsp;Traces &nbsp;</span>
+    <span style="color:#a8d8a8; border-bottom:2px solid #a8d8a8; padding-bottom:2px;">Logs</span>
+  </div>
+  <div class="mockup-body" style="font-family:monospace; font-size:0.72rem; min-height:80px;">
+    <div style="color:#666; font-size:0.65rem; margin-bottom:0.5rem;">ALL EVENTS &nbsp;·&nbsp; filter: <span style="color:#ccc;">all</span> &nbsp;[i]nfo &nbsp;[w]arn &nbsp;[e]rror</div>
+    <div style="color:#ccc; margin-bottom:0.2rem;"><span style="color:#666;">12:35:44</span> <span style="color:#a8d8a8;">info &nbsp;</span> agent.started &nbsp;<span style="color:#666;">opencode:plan</span></div>
+    <div style="color:#ccc; margin-bottom:0.2rem;"><span style="color:#666;">12:35:45</span> <span style="color:#a8d8a8;">info &nbsp;</span> agent.output &nbsp;&nbsp;<span style="color:#666;">opencode:plan · Creating implementation plan...</span></div>
+    <div style="color:#ccc; margin-bottom:0.2rem;"><span style="color:#666;">12:34:01</span> <span style="color:#f08080;">error</span> agent.failed &nbsp;&nbsp;<span style="color:#666;">opencode:lint · exit 1</span></div>
+    <div style="color:#ccc; margin-bottom:0.2rem;"><span style="color:#666;">12:33:55</span> <span style="color:#a8d8a8;">info &nbsp;</span> agent.finished &nbsp;<span style="color:#666;">opencode:build · exit 0</span></div>
+  </div>
+</div>

@@ -1,0 +1,77 @@
+<h2>adler — Architecture Overview</h2>
+<p class="subtitle">Section 1 of 4 — Does this structure look right?</p>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+
+  <!-- Left: diagram -->
+  <div>
+    <h3>Component Map</h3>
+    <div style="font-family: monospace; font-size: 0.78rem; background: var(--bg-secondary, #1a1a2e); border: 1px solid var(--border, #333); border-radius: 8px; padding: 1.25rem; line-height: 2.1;">
+      <div style="color:#ccc;">  ┌───────────┐   ┌───────────┐</div>
+      <div style="color:#ccc;">  │  adler    │   │  adler    │</div>
+      <div style="color:#ccc;">  │   CLI     │   │   TUI     │</div>
+      <div style="color:#ccc;">  └─────┬─────┘   └─────┬─────┘</div>
+      <div style="color:#ccc;">        │   Unix socket  │</div>
+      <div style="color:#ccc;">        └───────┬────────┘</div>
+      <div style="color:#7c9ef5;">         ┌──────┴──────┐</div>
+      <div style="color:#7c9ef5;">         │  adlerd     │  ← daemon</div>
+      <div style="color:#7c9ef5;">         │  (bun)      │</div>
+      <div style="color:#7c9ef5;">         └──┬───────┬──┘</div>
+      <div style="color:#ccc;">            │       │</div>
+      <div style="color:#a8d8a8;">    ┌───────┴┐  ┌───┴──────┐</div>
+      <div style="color:#a8d8a8;">    │SQLite  │  │ Agent    │</div>
+      <div style="color:#a8d8a8;">    │(bun:   │  │ Processes│</div>
+      <div style="color:#a8d8a8;">    │sqlite) │  │(spawned) │</div>
+      <div style="color:#a8d8a8;">    └────────┘  └──────────┘</div>
+    </div>
+  </div>
+
+  <!-- Right: responsibilities -->
+  <div>
+    <h3>Who does what</h3>
+    <div style="margin-bottom: 1rem;">
+      <div class="label" style="color:#7c9ef5;">DAEMON (adlerd)</div>
+      <ul style="margin: 0.4rem 0 0 1rem; font-size: 0.85rem; line-height: 1.8;">
+        <li>Single writer to SQLite</li>
+        <li>Spawns &amp; owns agent child processes</li>
+        <li>Streams agent stdout → SQLite log</li>
+        <li>Pushes events to connected clients</li>
+        <li>Auto-starts on first CLI use</li>
+        <li>Persists beyond terminal sessions</li>
+      </ul>
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <div class="label" style="color:#ccc;">CLI (adler)</div>
+      <ul style="margin: 0.4rem 0 0 1rem; font-size: 0.85rem; line-height: 1.8;">
+        <li>Thin client — sends commands to daemon</li>
+        <li>Receives responses, prints to stdout</li>
+        <li>Auto-starts daemon if not running</li>
+      </ul>
+    </div>
+    <div>
+      <div class="label" style="color:#ccc;">TUI (adler with no args)</div>
+      <ul style="margin: 0.4rem 0 0 1rem; font-size: 0.85rem; line-height: 1.8;">
+        <li>Holds open socket connection to daemon</li>
+        <li>Receives push events, re-renders on each</li>
+        <li>Built with Ink (React for terminal)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div style="background: var(--bg-secondary, #1a1a2e); border: 1px solid var(--border, #333); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
+  <h3 style="margin-top:0;">IPC Protocol (Unix socket, newline-delimited JSON)</h3>
+  <div style="font-family: monospace; font-size: 0.8rem; line-height: 1.9; color: #a8d8a8;">
+    <div><span style="color:#666;">// CLI → daemon (command)</span></div>
+    <div>{"type":"agent.run","id":"req-1","session":"abc","payload":{"prompt":"...","agent":"opencode:build"}}</div>
+    <div style="margin-top:0.5rem;"><span style="color:#666;">// daemon → CLI (response)</span></div>
+    <div>{"type":"response","id":"req-1","payload":{"agentId":"agent-xyz","status":"running"}}</div>
+    <div style="margin-top:0.5rem;"><span style="color:#666;">// daemon → TUI (event stream)</span></div>
+    <div>{"type":"event","event":"agent.output","payload":{"agentId":"agent-xyz","line":"Building..."}}</div>
+  </div>
+</div>
+
+<div style="background: #1a2a1a; border: 1px solid #2a4a2a; border-radius: 8px; padding: 1rem; font-size: 0.85rem;">
+  <strong>Persistence abstraction:</strong> The daemon wraps all SQLite access behind a <code>Storage</code> interface.
+  Swapping the backend later only requires re-implementing that interface.
+</div>

@@ -1,0 +1,7 @@
+{"type":"server-started","port":55108,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:55108","screen_dir":"/Users/karl/git/adler/.superpowers/brainstorm/81281-1781177532/content","state_dir":"/Users/karl/git/adler/.superpowers/brainstorm/81281-1781177532/state"}
+{"type":"screen-added","file":"/Users/karl/git/adler/.superpowers/brainstorm/81281-1781177532/content/scope-overview.html"}
+{"source":"user-event","type":"click","text":"C\n    \n      TUI-First (Phase 1 + 2 together)\n      Core foundation plus the TUI dashboard in one spec. Useful if the TUI shapes fundamental design decisions about how session data is structured and observed.\n      Deliverables: Everything in Phase 1, plus live TUI dashboard","choice":"tui-first","id":null,"timestamp":1781177718263}
+{"type":"screen-added","file":"/Users/karl/git/adler/.superpowers/brainstorm/81281-1781177532/content/waiting.html"}
+{"type":"screen-added","file":"/Users/karl/git/adler/.superpowers/brainstorm/81281-1781177532/content/architecture.html"}
+{"type":"screen-added","file":"/Users/karl/git/adler/.superpowers/brainstorm/81281-1781177532/content/data-model.html"}
+{"type":"screen-added","file":"/Users/karl/git/adler/.superpowers/brainstorm/81281-1781177532/content/data-model-v2.html"}

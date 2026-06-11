@@ -1,0 +1,105 @@
+<h2>adler TUI — Footer &amp; Hotkey Dialog</h2>
+<p class="subtitle">Persistent footer + "?" modal overlay</p>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+
+  <!-- Footer in context -->
+  <div>
+    <h3 style="font-size:0.85rem; margin-bottom:0.5rem;">Footer — contextual per tab</h3>
+    <div class="mockup">
+      <div class="mockup-header" style="font-family:monospace; font-size:0.72rem;">
+        <span style="color:#555;">Overview &nbsp;</span>
+        <span style="color:#a8d8a8; border-bottom:2px solid #a8d8a8; padding-bottom:2px;">Agents</span>
+        <span style="color:#555;"> &nbsp;Context &nbsp;Traces &nbsp;Logs</span>
+      </div>
+      <div class="mockup-body" style="font-family:monospace; font-size:0.72rem; padding:0; display:flex; flex-direction:column; min-height:160px;">
+        <div style="flex:1; padding:0.5rem;">
+          <div style="background:#1a2a1a; padding:0.3rem 0.5rem; border-radius:4px; margin-bottom:0.3rem; border-left:2px solid #f5c842;">
+            <div style="display:flex; justify-content:space-between;"><span style="color:#f5c842;">⟳ opencode:plan</span><span style="color:#666;">0m 43s</span></div>
+            <div style="color:#666; font-size:0.68rem;">Create an implementation plan...</div>
+          </div>
+          <div style="padding:0.3rem 0.5rem; margin-bottom:0.3rem; border-left:2px solid #a8d8a8;">
+            <div style="display:flex; justify-content:space-between;"><span style="color:#a8d8a8;">✓ opencode:build</span><span style="color:#666;">2m 14s</span></div>
+            <div style="color:#666; font-size:0.68rem;">Implement the payment module...</div>
+          </div>
+        </div>
+        <!-- Footer -->
+        <div style="border-top:1px solid #333; padding:0.3rem 0.5rem; display:flex; justify-content:space-between; align-items:center; background:#111;">
+          <div style="display:flex; gap:1rem; color:#666; font-size:0.68rem;">
+            <span><span style="color:#ccc; background:#222; padding:0 0.2rem; border-radius:2px;">↑↓</span> navigate</span>
+            <span><span style="color:#ccc; background:#222; padding:0 0.2rem; border-radius:2px;">enter</span> attach</span>
+            <span><span style="color:#ccc; background:#222; padding:0 0.2rem; border-radius:2px;">o</span> open external</span>
+            <span><span style="color:#ccc; background:#222; padding:0 0.2rem; border-radius:2px;">tab</span> switch tab</span>
+          </div>
+          <span style="color:#555; font-size:0.68rem;"><span style="color:#666; background:#222; padding:0 0.2rem; border-radius:2px;">?</span> help</span>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size:0.85rem; margin: 1rem 0 0.5rem;">Footer — on Overview tab</h3>
+    <div class="mockup">
+      <div class="mockup-body" style="font-family:monospace; font-size:0.72rem; padding:0; display:flex; flex-direction:column; min-height:40px;">
+        <div style="flex:1; padding:0.5rem; color:#555; font-size:0.68rem;">...</div>
+        <div style="border-top:1px solid #333; padding:0.3rem 0.5rem; display:flex; justify-content:space-between; align-items:center; background:#111;">
+          <div style="display:flex; gap:1rem; color:#666; font-size:0.68rem;">
+            <span><span style="color:#ccc; background:#222; padding:0 0.2rem; border-radius:2px;">tab</span> switch tab</span>
+            <span><span style="color:#ccc; background:#222; padding:0 0.2rem; border-radius:2px;">a</span> assistant</span>
+            <span><span style="color:#ccc; background:#222; padding:0 0.2rem; border-radius:2px;">q</span> quit</span>
+          </div>
+          <span style="color:#555; font-size:0.68rem;"><span style="color:#666; background:#222; padding:0 0.2rem; border-radius:2px;">?</span> help</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ? modal -->
+  <div>
+    <h3 style="font-size:0.85rem; margin-bottom:0.5rem;">"?" modal — all hotkeys</h3>
+    <div class="mockup" style="position:relative;">
+      <div class="mockup-header" style="font-family:monospace; font-size:0.72rem; opacity:0.3;">
+        Overview &nbsp;Agents &nbsp;Context &nbsp;Traces &nbsp;Logs
+      </div>
+      <div class="mockup-body" style="font-family:monospace; font-size:0.72rem; min-height:220px; padding:0; position:relative;">
+        <!-- dimmed background content -->
+        <div style="padding:0.5rem; opacity:0.15;">
+          <div>⟳ opencode:plan · 0m 43s</div>
+          <div>✓ opencode:build · done</div>
+        </div>
+        <!-- modal overlay -->
+        <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
+          <div style="background:#1a1a2e; border:1px solid #555; border-radius:8px; padding:1rem; width:90%; font-size:0.72rem;">
+            <div style="color:#a8d8a8; font-weight:bold; margin-bottom:0.75rem; border-bottom:1px solid #333; padding-bottom:0.4rem;">Hotkeys <span style="color:#666; font-weight:normal; font-size:0.65rem;">press ? or esc to close</span></div>
+
+            <div style="color:#666; font-size:0.65rem; text-transform:uppercase; margin-bottom:0.3rem;">Global</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.15rem 1rem; margin-bottom:0.75rem;">
+              <div><span style="color:#ccc; background:#222; padding:0 0.2rem; border-radius:2px;">tab / shift+tab</span> <span style="color:#666;">next / prev tab</span></div>
+              <div><span style="color:#ccc; background:#222; padding:0 0.2rem; border-radius:2px;">1-5</span> <span style="color:#666;">jump to tab</span></div>
+              <div><span style="color:#ccc; background:#222; padding:0 0.2rem; border-radius:2px;">a</span> <span style="color:#666;">open assistant</span></div>
+              <div><span style="color:#ccc; background:#222; padding:0 0.2rem; border-radius:2px;">q / ctrl+c</span> <span style="color:#666;">quit</span></div>
+            </div>
+
+            <div style="color:#666; font-size:0.65rem; text-transform:uppercase; margin-bottom:0.3rem;">Agents tab</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.15rem 1rem; margin-bottom:0.75rem;">
+              <div><span style="color:#ccc; background:#222; padding:0 0.2rem; border-radius:2px;">↑↓</span> <span style="color:#666;">navigate agents</span></div>
+              <div><span style="color:#ccc; background:#222; padding:0 0.2rem; border-radius:2px;">enter</span> <span style="color:#666;">attach (inline)</span></div>
+              <div><span style="color:#ccc; background:#222; padding:0 0.2rem; border-radius:2px;">o</span> <span style="color:#666;">open external</span></div>
+            </div>
+
+            <div style="color:#666; font-size:0.65rem; text-transform:uppercase; margin-bottom:0.3rem;">Traces tab</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.15rem 1rem; margin-bottom:0.75rem;">
+              <div><span style="color:#ccc; background:#222; padding:0 0.2rem; border-radius:2px;">↑↓</span> <span style="color:#666;">navigate spans</span></div>
+              <div><span style="color:#ccc; background:#222; padding:0 0.2rem; border-radius:2px;">enter</span> <span style="color:#666;">expand / collapse</span></div>
+            </div>
+
+            <div style="color:#666; font-size:0.65rem; text-transform:uppercase; margin-bottom:0.3rem;">Logs tab</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.15rem 1rem;">
+              <div><span style="color:#ccc; background:#222; padding:0 0.2rem; border-radius:2px;">i / w / e</span> <span style="color:#666;">filter by level</span></div>
+              <div><span style="color:#ccc; background:#222; padding:0 0.2rem; border-radius:2px;">f</span> <span style="color:#666;">toggle auto-scroll</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,91 @@
+<h2>adler — Data Model</h2>
+<p class="subtitle">Section 2 of 4 — The entities stored behind the Storage interface</p>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+
+  <div style="background: var(--bg-secondary, #1a1a2e); border: 1px solid #7c9ef5; border-radius: 8px; padding: 1rem;">
+    <div class="label" style="color:#7c9ef5;">SESSION</div>
+    <div style="font-family: monospace; font-size: 0.78rem; line-height: 1.9; margin-top: 0.5rem;">
+      <div><span style="color:#f5c842;">id</span> TEXT PK</div>
+      <div>goal TEXT</div>
+      <div>status TEXT</div>
+      <div style="opacity:0.5;font-size:0.7rem;">active | completed | archived</div>
+      <div>working_dir TEXT</div>
+      <div>created_at INTEGER</div>
+    </div>
+  </div>
+
+  <div style="background: var(--bg-secondary, #1a1a2e); border: 1px solid #a8d8a8; border-radius: 8px; padding: 1rem;">
+    <div class="label" style="color:#a8d8a8;">AGENT</div>
+    <div style="font-family: monospace; font-size: 0.78rem; line-height: 1.9; margin-top: 0.5rem;">
+      <div><span style="color:#f5c842;">id</span> TEXT PK</div>
+      <div><span style="color:#7c9ef5;">session_id</span> TEXT FK</div>
+      <div>name TEXT</div>
+      <div>agent_type TEXT</div>
+      <div style="opacity:0.5;font-size:0.7rem;">e.g. "opencode:build"</div>
+      <div>prompt TEXT</div>
+      <div>status TEXT</div>
+      <div style="opacity:0.5;font-size:0.7rem;">pending|running|done|failed</div>
+      <div>pid INTEGER</div>
+      <div>exit_code INTEGER</div>
+      <div>started_at INTEGER</div>
+      <div>finished_at INTEGER</div>
+    </div>
+  </div>
+
+  <div style="background: var(--bg-secondary, #1a1a2e); border: 1px solid #a8d8a8; border-radius: 8px; padding: 1rem;">
+    <div class="label" style="color:#a8d8a8;">AGENT_OUTPUT</div>
+    <div style="font-family: monospace; font-size: 0.78rem; line-height: 1.9; margin-top: 0.5rem;">
+      <div><span style="color:#f5c842;">id</span> INTEGER PK</div>
+      <div><span style="color:#a8d8a8;">agent_id</span> TEXT FK</div>
+      <div>line TEXT</div>
+      <div>timestamp INTEGER</div>
+    </div>
+    <div style="margin-top: 0.75rem; font-size: 0.72rem; opacity: 0.7;">stdout lines streamed from agent process → stored here → pushed as events to TUI</div>
+  </div>
+
+  <div style="background: var(--bg-secondary, #1a1a2e); border: 1px solid #f5c842; border-radius: 8px; padding: 1rem;">
+    <div class="label" style="color:#f5c842;">CONTEXT_ITEM</div>
+    <div style="font-family: monospace; font-size: 0.78rem; line-height: 1.9; margin-top: 0.5rem;">
+      <div><span style="color:#f5c842;">id</span> TEXT PK</div>
+      <div><span style="color:#7c9ef5;">session_id</span> TEXT FK</div>
+      <div>type TEXT</div>
+      <div style="opacity:0.5;font-size:0.7rem;">url | file | text</div>
+      <div>label TEXT</div>
+      <div>description TEXT</div>
+      <div>value TEXT</div>
+      <div>created_at INTEGER</div>
+    </div>
+  </div>
+
+  <div style="background: var(--bg-secondary, #1a1a2e); border: 1px solid #f08080; border-radius: 8px; padding: 1rem;">
+    <div class="label" style="color:#f08080;">LOG_ENTRY</div>
+    <div style="font-family: monospace; font-size: 0.78rem; line-height: 1.9; margin-top: 0.5rem;">
+      <div><span style="color:#f5c842;">id</span> INTEGER PK</div>
+      <div><span style="color:#7c9ef5;">session_id</span> TEXT FK</div>
+      <div><span style="color:#a8d8a8;">agent_id</span> TEXT FK?</div>
+      <div>level TEXT</div>
+      <div style="opacity:0.5;font-size:0.7rem;">info | warn | error</div>
+      <div>message TEXT</div>
+      <div>timestamp INTEGER</div>
+    </div>
+  </div>
+
+  <div style="background: var(--bg-secondary, #1a1a2e); border: 1px dashed #555; border-radius: 8px; padding: 1rem; opacity: 0.5;">
+    <div class="label" style="color:#999;">WORKFLOW + STEP</div>
+    <div style="font-size: 0.78rem; margin-top: 0.5rem; line-height: 1.7;">
+      Out of scope for Phase 1+2.<br>Schema reserved — tables created empty, populated in Phase 3.
+    </div>
+  </div>
+
+</div>
+
+<div style="background: var(--bg-secondary, #1a1a2e); border: 1px solid #333; border-radius: 8px; padding: 1rem; font-size: 0.82rem; line-height: 1.8;">
+  <strong>Environment variables passed to agent processes:</strong>
+  <div style="font-family: monospace; margin-top: 0.5rem; color: #a8d8a8;">
+    ADLER_SESSION=&lt;session.id&gt;<br>
+    ADLER_AGENT_PROMPT=&lt;agent.prompt&gt;<br>
+    ADLER_CONTEXT=&lt;JSON dump of session context_items&gt;<br>
+    ADLER_SOCKET=&lt;path to daemon socket&gt;
+  </div>
+</div>

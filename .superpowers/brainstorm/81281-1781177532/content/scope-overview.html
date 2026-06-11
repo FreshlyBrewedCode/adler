@@ -1,0 +1,55 @@
+<h2>adler — System Overview</h2>
+<p class="subtitle">The README describes 8 distinct subsystems. Which should we spec first?</p>
+
+<div class="section" style="margin-bottom: 2rem;">
+  <h3>Subsystems &amp; Dependencies</h3>
+  <div style="font-family: monospace; font-size: 0.85rem; background: var(--bg-secondary, #1a1a2e); border: 1px solid var(--border, #333); border-radius: 8px; padding: 1.5rem; line-height: 2;">
+    <div style="color: #7c9ef5;">┌─────────────────────────────────────────────┐</div>
+    <div style="color: #7c9ef5;">│            adler Assistant (AI)             │  ← phase 4</div>
+    <div style="color: #7c9ef5;">└──────────────────┬──────────────────────────┘</div>
+    <div style="color: #7c9ef5;">                   │</div>
+    <div style="color: #a8d8a8;">┌──────────────────┴──────────────┐  ┌────────────────────┐</div>
+    <div style="color: #a8d8a8;">│      Workflow Engine             │  │   Plugin System     │  ← phase 3</div>
+    <div style="color: #a8d8a8;">└──────────────────┬──────────────┘  └────────────────────┘</div>
+    <div style="color: #a8d8a8;">                   │</div>
+    <div style="color: #f5c842;">┌──────────────────┴──────────────┐  ┌────────────────────┐</div>
+    <div style="color: #f5c842;">│         TUI Dashboard            │  │    Hooks System     │  ← phase 2</div>
+    <div style="color: #f5c842;">└──────────────────┬──────────────┘  └─────────┬──────────┘</div>
+    <div style="color: #f5c842;">                   │                           │</div>
+    <div style="color: #f08080;">┌──────────────────┴───────────────────────────┴──────────┐</div>
+    <div style="color: #f08080;">│   Core Foundation: Sessions · CLI · Agent Runner · Context  │  ← phase 1</div>
+    <div style="color: #f08080;">└──────────────────────────────────────────────────────────┘</div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>What should we spec today?</h3>
+  <p class="subtitle">Each phase builds on the previous. Phase 1 is required for everything else.</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="phase1" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Phase 1 — Core Foundation</h3>
+      <p>Sessions, CLI, Agent Runner, Context system. The bedrock everything else builds on. No UI yet — just the data model and command-line interface.</p>
+      <p style="margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.7;">Deliverables: <code>adler new</code>, <code>adler agent run/wait/status</code>, <code>adler context add/list</code>, session persistence</p>
+    </div>
+  </div>
+  <div class="option" data-choice="concept" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Full Concept Architecture</h3>
+      <p>Design the whole system top-to-bottom first — data model, component boundaries, tech stack decisions — then produce phase-by-phase implementation plans.</p>
+      <p style="margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.7;">Deliverables: High-level architecture spec covering all 8 subsystems, then per-phase plans</p>
+    </div>
+  </div>
+  <div class="option" data-choice="tui-first" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>TUI-First (Phase 1 + 2 together)</h3>
+      <p>Core foundation plus the TUI dashboard in one spec. Useful if the TUI shapes fundamental design decisions about how session data is structured and observed.</p>
+      <p style="margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.7;">Deliverables: Everything in Phase 1, plus live TUI dashboard</p>
+    </div>
+  </div>
+</div>

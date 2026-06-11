@@ -1,0 +1,8 @@
+{"type":"server-started","port":52691,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:52691","screen_dir":"/Users/karl/git/adler/.superpowers/brainstorm/60777-1781183539/content","state_dir":"/Users/karl/git/adler/.superpowers/brainstorm/60777-1781183539/state"}
+{"type":"screen-added","file":"/Users/karl/git/adler/.superpowers/brainstorm/60777-1781183539/content/tui-layout.html"}
+{"source":"user-event","type":"click","text":"B\n    \n      Tabbed — switch between views\n      Header always visible. Tab key switches between Spans, Output, Context, Events panels — full screen each.\n      \n        adler  ·  session: abc123  ·  active\n        \n          \n            Spans\n            Output\n            Context\n            Events\n          \n          \n            ● opencode:build  done · 2m 14s\n            ● research step  done\n            ⟳ opencode:plan  running · 0m 43s\n            ✗ opencode:lint  failed · exit 1\n          \n          \n            tab switch view  ·  enter select  ·  a assistant  ·  q quit","choice":"tabbed","id":null,"timestamp":1781183850381}
+{"type":"screen-added","file":"/Users/karl/git/adler/.superpowers/brainstorm/60777-1781183539/content/tui-tabs.html"}
+{"type":"screen-added","file":"/Users/karl/git/adler/.superpowers/brainstorm/60777-1781183539/content/tui-tabs-v2.html"}
+{"type":"screen-added","file":"/Users/karl/git/adler/.superpowers/brainstorm/60777-1781183539/content/context-tab-v2.html"}
+{"type":"screen-added","file":"/Users/karl/git/adler/.superpowers/brainstorm/60777-1781183539/content/tui-footer-hotkeys.html"}
+{"type":"server-stopped","reason":"idle timeout"}
