@@ -19,6 +19,50 @@ adler is yet another agent orchestrator but with a focus on flexibility, single 
   - ask anything about the session
   - use it for automatic orchestration 
 
+## Sessions
+
+A session is the central unit in adler. Every agent run, context item, and log entry belongs to a session. Sessions provide the observability layer — a complete record of what happened, which agents ran, and what they produced.
+
+```bash
+# Create a new session
+adler new
+
+# Create a session with a goal
+adler new --goal "Implement payment feature"
+```
+
+The active session is automatically resolved for all commands. See [Session detection](#session-detection).
+
+Each session tracks:
+
+- **Goal** — the task or goal the session is working toward
+- **Agents** — every agent that ran, its prompt, status, and output
+- **Context** — files, URLs, and other references attached to the session
+- **Workflow** — the active workflow and its current step/status, if any
+- **Logs** — structured log entries written by agents and hooks
+
+## TUI Dashboard
+
+Running `adler` without arguments opens an interactive dashboard for the current session:
+
+- Live agent status and output
+- Workflow progress and current step
+- Session context items
+- Logs and traces
+
+Workflow steps can be triggered directly from the TUI, and the [adler assistant](#adler-assistant) can be invoked interactively.
+
+## Adler Assistant
+
+The adler assistant is an agent with full awareness of the current session. It can answer questions about session state or autonomously orchestrate agents through a workflow.
+
+```bash
+adler assistant "what has been implemented so far?"
+adler assistant --auto "finish the current workflow"
+```
+
+The assistant receives the full session — agent traces, logs, context items, and workflow state — so it can make informed decisions. In automatic mode (`--auto`), it reads the session, decides what to do next, runs the appropriate agents, and iterates until the workflow is complete or a human decision is needed.
+
 ## CLI Quickstart
 
 ```bash
@@ -32,7 +76,7 @@ adler init
 adler new
 
 # Get session context
-adler context list # optinal specify --session, by default adler reads the session id from ADLER_CURRENT_SESSION
+adler context list # optional: specify --session, by default adler reads the session id from ADLER_SESSION
 
 # Add context
 adler context add --type url --description "a example url" https://example.com
@@ -136,6 +180,34 @@ then run the opencode build agent using:
 adler agent run --agent opencode:build "hello there"
 ```
 
+## Plugins
+
+Plugins are npm packages that contribute pre-built agents, hooks, and workflows to your adler config. They are loaded and merged before your local configuration, so local settings always take precedence.
+
+```ts
+const config: AdlerConfig = {
+  plugins: ["@adler/opencode"],
+}
+```
+
+**First-party plugins:**
+
+- `@adler/opencode` — opencode agent definitions with subagent support
+
+To author a plugin, export an `AdlerConfig` object from an npm package:
+
+```ts
+import type { AdlerConfig } from "@adler/core"
+
+export default {
+  agent: {
+    agents: {
+      myagent: ({prompt}) => `my-cli run "${prompt}"`
+    }
+  }
+} satisfies AdlerConfig
+```
+
 ## Hooks
 
 Hooks allow you to hook into any part of adlers execution flow. Distinct events are emitted for any command or action. Hooks allow you to run custom code or shell commands before or after that event:
@@ -189,6 +261,33 @@ Run workflows from the TUI dashboard or the cli:
 
 ```bash
 adler run my-workflow
+```
+
+## Context
+
+Context is arbitrary data attached to a session. Agents receive the full context as a JSON dump via `ADLER_CONTEXT`, and workflow step prompts can query it inline using shell interpolation.
+
+```bash
+# Add a URL
+adler context add --type url --label "docs" --description "API docs" https://example.com
+
+# Add a file
+adler context add --type file --label "spec" --description "Feature spec" ./spec.md
+
+# List all context items
+adler context list
+
+# Get items by type and label (used inside workflow prompts)
+adler context get --type url --label "docs"
+```
+
+Any data can be added — files, URLs, GitHub issues, text notes. Labels let you retrieve specific items inside workflow steps:
+
+```yaml
+steps:
+  implement: |
+    Implement the feature. Consult these references:
+    $ adler context get --type url --label "docs"
 ```
 
 ## Environment variables
