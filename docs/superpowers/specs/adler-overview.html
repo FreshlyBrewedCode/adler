@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>adler — Eagle eyes on your agents</title>
+<style>
+  :root {
+    --bg:      #0b0b14;
+    --bg2:     #11111e;
+    --bg3:     #191928;
+    --bg4:     #1f1f30;
+    --border:  #252538;
+    --border2: #2e2e48;
+    --text:    #d8d8f0;
+    --muted:   #6868a0;
+    --muted2:  #9090c0;
+    --blue:    #7c9ef5;
+    --green:   #6dd8a0;
+    --yellow:  #f5c842;
+    --red:     #f07878;
+    --purple:  #c084fc;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  code, pre, .mono {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', monospace;
+  }
+
+  /* ── Nav ─────────────────────────────────────────── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(11,11,20,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 52px;
+  }
+  .nav-brand {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem; font-weight: 700;
+    color: var(--blue);
+    letter-spacing: -0.02em;
+  }
+  .nav-brand span { color: var(--muted2); font-weight: 400; }
+  .nav-links { display: flex; gap: 1.75rem; }
+  .nav-links a {
+    color: var(--muted2); text-decoration: none; font-size: 0.875rem;
+    transition: color 0.15s;
+  }
+  .nav-links a:hover { color: var(--text); }
+
+  /* ── Sections ────────────────────────────────────── */
+  section { padding: 6rem 2rem; max-width: 960px; margin: 0 auto; }
+  section.full { max-width: 100%; padding-left: 0; padding-right: 0; }
+
+  .section-label {
+    font-family: monospace; font-size: 0.72rem; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 0.75rem;
+  }
+  h2 {
+    font-size: 2rem; font-weight: 700; line-height: 1.2;
+    letter-spacing: -0.03em; margin-bottom: 1rem;
+    color: var(--text);
+  }
+  h3 {
+    font-size: 1.15rem; font-weight: 600; margin-bottom: 0.5rem;
+    color: var(--text);
+  }
+  p { color: var(--muted2); line-height: 1.75; margin-bottom: 1rem; }
+  p:last-child { margin-bottom: 0; }
+
+  .divider {
+    height: 1px; background: var(--border);
+    max-width: 960px; margin: 0 auto;
+  }
+
+  /* ── Hero ────────────────────────────────────────── */
+  #hero {
+    padding-top: 9rem; padding-bottom: 5rem;
+    text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .hero-glow {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 600px; height: 300px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(124,158,245,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 99px; padding: 0.3rem 0.9rem;
+    font-size: 0.8rem; color: var(--muted2);
+    font-family: monospace; margin-bottom: 2rem;
+  }
+  .hero-eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  .hero-title {
+    font-size: clamp(3.5rem, 8vw, 6rem);
+    font-weight: 800; letter-spacing: -0.05em;
+    line-height: 1;
+    background: linear-gradient(135deg, #fff 0%, var(--blue) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 1rem;
+  }
+  .hero-subtitle {
+    font-size: 1.35rem; color: var(--muted2); margin-bottom: 2.5rem;
+    max-width: 540px; margin-left: auto; margin-right: auto;
+  }
+  .hero-pills {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem;
+    margin-bottom: 3.5rem;
+  }
+  .pill {
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 99px; padding: 0.35rem 1rem;
+    font-size: 0.82rem; color: var(--muted2); font-family: monospace;
+  }
+  .pill.blue { border-color: rgba(124,158,245,0.4); color: var(--blue); }
+  .pill.green { border-color: rgba(109,216,160,0.4); color: var(--green); }
+  .pill.yellow { border-color: rgba(245,200,66,0.4); color: var(--yellow); }
+  .pill.purple { border-color: rgba(192,132,252,0.4); color: var(--purple); }
+
+  /* ── Value props ─────────────────────────────────── */
+  .props-grid {
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 1.25rem;
+    margin-top: 3rem;
+  }
+  .prop-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.5rem;
+    transition: border-color 0.2s;
+  }
+  .prop-card:hover { border-color: var(--border2); }
+  .prop-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; margin-bottom: 0.75rem;
+  }
+  .prop-card h3 { font-size: 0.95rem; margin-bottom: 0.4rem; }
+  .prop-card p { font-size: 0.85rem; color: var(--muted); margin: 0; }
+
+  /* ── Architecture ────────────────────────────────── */
+  .arch-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 3rem;
+    align-items: start; margin-top: 2.5rem;
+  }
+  .arch-diagram {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 2rem;
+    font-family: monospace; font-size: 0.8rem; line-height: 2.1;
+  }
+  .arch-packages { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; }
+  .pkg-row {
+    display: flex; align-items: flex-start; gap: 1rem;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 0.75rem 1rem;
+  }
+  .pkg-name {
+    font-family: monospace; font-size: 0.8rem;
+    white-space: nowrap; min-width: 130px;
+    padding: 0.1rem 0.4rem; border-radius: 4px;
+    background: var(--bg3);
+  }
+  .pkg-name.blue { color: var(--blue); }
+  .pkg-name.purple { color: var(--purple); }
+  .pkg-name.green { color: var(--green); }
+  .pkg-name.muted { color: var(--muted2); }
+  .pkg-name.yellow { color: var(--yellow); }
+  .pkg-desc { font-size: 0.83rem; color: var(--muted); line-height: 1.5; }
+
+  /* ── Data model ──────────────────────────────────── */
+  .tables-grid {
+    display: grid; grid-template-columns: repeat(2,1fr); gap: 1rem;
+    margin-top: 2rem;
+  }
+  .table-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.25rem; overflow: hidden;
+  }
+  .table-header {
+    font-family: monospace; font-size: 0.72rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;
+  }
+  .table-header::before {
+    content: ''; display: block; width: 3px; height: 14px;
+    border-radius: 99px;
+  }
+  .tc-sessions .table-header { color: var(--blue); }
+  .tc-sessions .table-header::before { background: var(--blue); }
+  .tc-spans .table-header { color: var(--green); }
+  .tc-spans .table-header::before { background: var(--green); }
+  .tc-events .table-header { color: var(--red); }
+  .tc-events .table-header::before { background: var(--red); }
+  .tc-context .table-header { color: var(--yellow); }
+  .tc-context .table-header::before { background: var(--yellow); }
+  .table-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 0.2rem 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-family: monospace; font-size: 0.77rem;
+  }
+  .table-row:last-child { border-bottom: none; }
+  .col-name { color: var(--text); }
+  .col-name.pk { color: var(--yellow); }
+  .col-name.fk { color: var(--blue); }
+  .col-type { color: var(--muted); font-size: 0.7rem; }
+  .span-tree-demo {
+    grid-column: 1 / -1;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.5rem;
+    font-family: monospace; font-size: 0.82rem; line-height: 2;
+  }
+
+  /* ── TUI mockup ──────────────────────────────────── */
+  .terminal-window {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: 12px; overflow: hidden;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    max-width: 820px; margin: 0 auto;
+  }
+  .terminal-chrome {
+    background: var(--bg3); padding: 0.6rem 1rem;
+    display: flex; align-items: center; gap: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .chrome-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .chrome-dot.red { background: #f07070; }
+  .chrome-dot.yellow { background: #f5c842; }
+  .chrome-dot.green { background: #6dd8a0; }
+  .terminal-titlebar {
+    flex: 1; text-align: center;
+    font-family: monospace; font-size: 0.75rem; color: var(--muted);
+  }
+  .terminal-header {
+    background: var(--bg3); padding: 0.4rem 1rem;
+    font-family: monospace; font-size: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted2);
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .session-status {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+    animation: pulse 2s infinite;
+  }
+  .tab-bar {
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    display: flex; font-family: monospace; font-size: 0.75rem;
+  }
+  .tui-tab {
+    padding: 0.5rem 1.1rem; color: var(--muted); cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    user-select: none;
+  }
+  .tui-tab:hover { color: var(--muted2); }
+  .tui-tab.active { color: var(--green); border-bottom-color: var(--green); }
+  .tab-content-area {
+    min-height: 300px; padding: 1rem 1.25rem;
+    font-family: monospace; font-size: 0.78rem; line-height: 1.9;
+  }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+  .tui-footer {
+    background: var(--bg3); border-top: 1px solid var(--border);
+    padding: 0.35rem 1.1rem;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: monospace; font-size: 0.7rem; color: var(--muted);
+  }
+  .hotkeys { display: flex; gap: 1rem; }
+  .hk { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .key {
+    background: var(--bg4); border: 1px solid var(--border2);
+    border-radius: 3px; padding: 0 0.3rem;
+    color: var(--muted2); font-size: 0.68rem;
+  }
+
+  /* overview tab */
+  .overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .ov-section-label { color: var(--muted); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+  .ov-row { display: flex; gap: 0.75rem; margin-bottom: 0.15rem; }
+  .ov-key { color: var(--muted); min-width: 60px; }
+  .agent-row { padding: 0.25rem 0.4rem; border-radius: 4px; margin-bottom: 0.25rem; display: flex; justify-content: space-between; }
+  .agent-row.running { background: rgba(109,216,160,0.07); border-left: 2px solid var(--green); }
+  .agent-row.done { border-left: 2px solid rgba(109,216,160,0.3); }
+  .agent-row.failed { border-left: 2px solid var(--red); }
+  .ctx-mini-row { display: flex; gap: 0.6rem; margin-bottom: 0.25rem; padding: 0.2rem 0.4rem; }
+
+  /* context tab */
+  .ctx-group { margin-bottom: 1rem; }
+  .ctx-group-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.35rem; }
+  .ctx-item { display: flex; justify-content: space-between; padding: 0.25rem 0.5rem; border-left: 2px solid; margin-bottom: 0.2rem; }
+  .ctx-item.goal { border-color: var(--yellow); }
+  .ctx-item.url { border-color: var(--blue); }
+  .ctx-item.file { border-color: var(--red); }
+  .ctx-item.text { border-color: var(--muted); }
+  .ctx-val { color: var(--text); }
+  .ctx-meta { color: var(--muted); font-size: 0.68rem; }
+
+  /* agents tab */
+  .agent-card { padding: 0.4rem 0.6rem; border-left: 2px solid; border-radius: 0 4px 4px 0; margin-bottom: 0.4rem; background: var(--bg3); }
+  .agent-card.running { border-color: var(--green); }
+  .agent-card.done { border-color: rgba(109,216,160,0.3); }
+  .agent-card.failed { border-color: var(--red); }
+  .ac-top { display: flex; justify-content: space-between; margin-bottom: 0.1rem; }
+  .ac-name { color: var(--text); }
+  .ac-name.running { color: var(--green); }
+  .ac-name.failed { color: var(--red); }
+  .ac-time { color: var(--muted); font-size: 0.7rem; }
+  .ac-prompt { color: var(--muted); font-size: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%; }
+
+  /* traces tab */
+  .span-line { padding-left: calc(var(--depth, 0) * 1.25rem); margin-bottom: 0.1rem; }
+  .span-marker { margin-right: 0.4rem; }
+
+  /* logs tab */
+  .log-row { display: flex; gap: 0.75rem; margin-bottom: 0.15rem; font-size: 0.73rem; }
+  .log-ts { color: var(--muted); min-width: 56px; }
+  .log-level { min-width: 36px; }
+  .log-level.info { color: var(--green); }
+  .log-level.error { color: var(--red); }
+  .log-level.warn { color: var(--yellow); }
+  .log-type { color: var(--blue); min-width: 110px; }
+  .log-msg { color: var(--muted2); }
+
+  /* ── Flow diagram ────────────────────────────────── */
+  .flow-steps {
+    display: flex; gap: 0; margin-top: 2rem;
+    overflow-x: auto; padding-bottom: 1rem;
+  }
+  .flow-step {
+    flex: 1; min-width: 140px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-right: none; padding: 1.25rem 1rem;
+    position: relative;
+  }
+  .flow-step:first-child { border-radius: 10px 0 0 10px; }
+  .flow-step:last-child { border-right: 1px solid var(--border); border-radius: 0 10px 10px 0; }
+  .flow-step::after {
+    content: '→';
+    position: absolute; right: -13px; top: 50%; transform: translateY(-50%);
+    color: var(--muted); font-size: 1rem; z-index: 1;
+    background: var(--bg); padding: 0 2px;
+  }
+  .flow-step:last-child::after { display: none; }
+  .flow-num {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--bg3); border: 1px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-family: monospace; font-size: 0.7rem; color: var(--muted2);
+    margin-bottom: 0.6rem;
+  }
+  .flow-step h4 { font-size: 0.82rem; margin-bottom: 0.3rem; color: var(--text); }
+  .flow-step p { font-size: 0.75rem; color: var(--muted); margin: 0; line-height: 1.5; }
+
+  /* ── CLI section ─────────────────────────────────── */
+  .cli-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem; }
+  .cli-group { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; }
+  .cli-group-title { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.75rem; }
+  .cmd { display: flex; gap: 0.75rem; margin-bottom: 0.5rem; align-items: flex-start; }
+  .cmd-text { font-family: monospace; font-size: 0.78rem; color: var(--blue); flex-shrink: 0; }
+  .cmd-desc { font-size: 0.78rem; color: var(--muted); line-height: 1.4; }
+  .cmd-text .arg { color: var(--muted2); }
+
+  /* ── Config section ──────────────────────────────── */
+  pre.code-block {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.5rem;
+    font-size: 0.8rem; line-height: 1.8;
+    overflow-x: auto; color: var(--text);
+  }
+  .c-kw { color: var(--purple); }
+  .c-str { color: var(--green); }
+  .c-fn { color: var(--blue); }
+  .c-ty { color: var(--yellow); }
+  .c-cm { color: var(--muted); }
+
+  /* ── Roadmap ─────────────────────────────────────── */
+  .phases { display: flex; flex-direction: column; gap: 1px; margin-top: 2rem; }
+  .phase {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 0; padding: 1.5rem 2rem;
+    display: grid; grid-template-columns: 160px 1fr auto;
+    gap: 1.5rem; align-items: start;
+    transition: border-color 0.2s;
+  }
+  .phase:first-child { border-radius: 10px 10px 0 0; }
+  .phase:last-child { border-radius: 0 0 10px 10px; }
+  .phase:hover { border-color: var(--border2); }
+  .phase.current { background: var(--bg3); border-color: var(--border2); }
+  .phase-badge {
+    display: inline-block;
+    font-family: monospace; font-size: 0.72rem;
+    padding: 0.25rem 0.6rem; border-radius: 6px;
+    margin-bottom: 0.4rem;
+  }
+  .phase-badge.now { background: rgba(109,216,160,0.15); color: var(--green); border: 1px solid rgba(109,216,160,0.3); }
+  .phase-badge.next { background: rgba(124,158,245,0.1); color: var(--blue); border: 1px solid rgba(124,158,245,0.25); }
+  .phase-badge.future { background: rgba(192,132,252,0.1); color: var(--purple); border: 1px solid rgba(192,132,252,0.25); }
+  .phase h3 { font-size: 1.05rem; margin-bottom: 0.4rem; }
+  .phase p { font-size: 0.85rem; color: var(--muted); }
+  .phase-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; padding-top: 0.2rem; }
+  .tag {
+    font-family: monospace; font-size: 0.72rem;
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 4px; padding: 0.15rem 0.5rem; color: var(--muted2);
+  }
+
+  /* ── IPC preview ─────────────────────────────────── */
+  .ipc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem; }
+  .ipc-box {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+  }
+  .ipc-label {
+    padding: 0.5rem 1rem; font-family: monospace; font-size: 0.7rem;
+    font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    border-bottom: 1px solid var(--border); color: var(--muted);
+  }
+  .ipc-body { padding: 0.75rem 1rem; font-family: monospace; font-size: 0.75rem; line-height: 1.8; color: var(--text); }
+
+  /* ── Propagation ─────────────────────────────────── */
+  .env-block {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.25rem 1.5rem;
+    font-family: monospace; font-size: 0.8rem; line-height: 2;
+    margin-top: 1.5rem;
+  }
+  .env-key { color: var(--yellow); }
+  .env-val { color: var(--green); }
+  .env-cm { color: var(--muted); }
+
+  /* ── Animations ──────────────────────────────────── */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+  .blink { animation: blink 1s step-end infinite; }
+
+  /* ── Footer ──────────────────────────────────────── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2.5rem 2rem;
+    text-align: center;
+    font-size: 0.82rem; color: var(--muted);
+    font-family: monospace;
+  }
+
+  @media (max-width: 700px) {
+    .arch-grid, .tables-grid, .cli-grid, .ipc-grid, .overview-grid { grid-template-columns: 1fr; }
+    .props-grid { grid-template-columns: 1fr; }
+    .phase { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Nav ───────────────────────────────────────────── -->
+<nav>
+  <div class="nav-brand">adler <span>/ docs</span></div>
+  <div class="nav-links">
+    <a href="#architecture">Architecture</a>
+    <a href="#data-model">Data Model</a>
+    <a href="#tui">TUI</a>
+    <a href="#cli">CLI</a>
+    <a href="#roadmap">Roadmap</a>
+  </div>
+</nav>
+
+<!-- ── Hero ──────────────────────────────────────────── -->
+<section id="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-eyebrow">
+    <span class="dot"></span>
+    Phase 1 + 2 — Core &amp; TUI
+  </div>
+  <div class="hero-title">adler</div>
+  <p class="hero-subtitle">Eagle eyes on your agents. An orchestrator built for full observability into what your AI agents are doing, right now.</p>
+  <div class="hero-pills">
+    <span class="pill blue">Daemon-centric</span>
+    <span class="pill green">Span-based tracing</span>
+    <span class="pill yellow">Live TUI dashboard</span>
+    <span class="pill purple">Fully hackable</span>
+  </div>
+  <div class="props-grid">
+    <div class="prop-card">
+      <div class="prop-icon" style="background:rgba(124,158,245,0.1);">🔭</div>
+      <h3>Full observability</h3>
+      <p>Every agent run, log line, and context item traced in a structured span tree. Know exactly what happened and when.</p>
+    </div>
+    <div class="prop-card">
+      <div class="prop-icon" style="background:rgba(109,216,160,0.1);">⚡</div>
+      <h3>Daemon-powered</h3>
+      <p>A single background process owns all state. Agents survive terminal sessions. All clients get live push events.</p>
+    </div>
+    <div class="prop-card">
+      <div class="prop-icon" style="background:rgba(245,200,66,0.1);">🔧</div>
+      <h3>Your stack</h3>
+      <p>Any CLI agent, any workflow. One TypeScript config file. Hooks, plugins, and attach scripts — all customizable.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── Architecture ──────────────────────────────────── -->
+<section id="architecture">
+  <div class="section-label">Architecture</div>
+  <h2>One daemon, many clients</h2>
+  <p>adlerd is the single authority over all sessions and agent processes. The CLI and TUI are thin clients — they send commands or subscribe to events over a Unix socket. Persistence is hidden behind a Storage interface, making the backend swappable.</p>
+
+  <div class="arch-grid">
+    <div>
+      <div class="arch-diagram">
+        <div style="color:var(--muted); margin-bottom:0.5rem; font-size:0.7rem;">COMPONENT MAP</div>
+        <div style="color:var(--muted2);">┌───────────┐&nbsp;&nbsp; ┌───────────┐</div>
+        <div style="color:var(--muted2);">│ adler CLI │&nbsp;&nbsp; │ adler TUI │</div>
+        <div style="color:var(--muted2);">└─────┬─────┘&nbsp;&nbsp; └─────┬─────┘</div>
+        <div style="color:var(--muted2);">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; └──Unix socket──┘</div>
+        <div style="color:var(--muted2);">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; │</div>
+        <div style="color:var(--blue);">&nbsp;&nbsp;&nbsp;&nbsp; ┌─────┴──────┐</div>
+        <div style="color:var(--blue);">&nbsp;&nbsp;&nbsp;&nbsp; │&nbsp; adlerd&nbsp;&nbsp;&nbsp; │ ← daemon</div>
+        <div style="color:var(--blue);">&nbsp;&nbsp;&nbsp;&nbsp; └──┬──────┬──┘</div>
+        <div style="color:var(--muted2);">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; │</div>
+        <div style="color:var(--green);">&nbsp;&nbsp; ┌──────┴─┐ ┌─┴────────┐</div>
+        <div style="color:var(--green);">&nbsp;&nbsp; │ SQLite │ │&nbsp; Agent&nbsp;&nbsp; │</div>
+        <div style="color:var(--green);">&nbsp;&nbsp; │(Storage│ │ Processes│</div>
+        <div style="color:var(--green);">&nbsp;&nbsp; │&nbsp;iface) │ │ (PTY)&nbsp;&nbsp;&nbsp; │</div>
+        <div style="color:var(--green);">&nbsp;&nbsp; └────────┘ └──────────┘</div>
+      </div>
+
+      <div style="margin-top:1.25rem; background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:1.25rem;">
+        <div style="font-size:0.72rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin-bottom:0.75rem;">IPC — newline-delimited JSON</div>
+        <div style="font-family:monospace; font-size:0.76rem; line-height:2;">
+          <div style="color:var(--muted); font-size:0.68rem;">CLI → Daemon</div>
+          <div style="color:var(--text);">{"type":"<span style="color:var(--blue);">agent.run</span>","id":"r1","payload":{...}}</div>
+          <div style="color:var(--muted); font-size:0.68rem; margin-top:0.25rem;">Daemon → CLI</div>
+          <div style="color:var(--text);">{"type":"<span style="color:var(--yellow);">response</span>","id":"r1","payload":{...}}</div>
+          <div style="color:var(--muted); font-size:0.68rem; margin-top:0.25rem;">Daemon → TUI (push stream)</div>
+          <div style="color:var(--text);">{"type":"<span style="color:var(--green);">event</span>","event":"agent.output","payload":{...}}</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="arch-packages">
+        <div class="pkg-row">
+          <span class="pkg-name blue">packages/sdk</span>
+          <span class="pkg-desc">@adler/sdk — shared types, Storage interface, IPC protocol, typed client. The foundation everything else builds on.</span>
+        </div>
+        <div class="pkg-row">
+          <span class="pkg-name purple">packages/daemon</span>
+          <span class="pkg-desc">adlerd — sole SQLite writer, spawns and owns agent processes (with PTY), pushes events to subscribers.</span>
+        </div>
+        <div class="pkg-row">
+          <span class="pkg-name muted">packages/cli</span>
+          <span class="pkg-desc">adler — thin CLI binary. Uses SDK client. Auto-starts daemon on first use.</span>
+        </div>
+        <div class="pkg-row">
+          <span class="pkg-name yellow">packages/tui</span>
+          <span class="pkg-desc">Ink (React for terminals) dashboard. Subscribes to daemon, re-renders on push events. No polling.</span>
+        </div>
+        <div class="pkg-row">
+          <span class="pkg-name green">packages/plugins/opencode</span>
+          <span class="pkg-desc">@adler/opencode — first-party plugin providing opencode agent definitions with subagent support.</span>
+        </div>
+      </div>
+
+      <div style="margin-top:1.25rem; background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:1.25rem; font-size:0.84rem;">
+        <h3 style="font-size:0.9rem; margin-bottom:0.75rem;">Daemon lifecycle</h3>
+        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+          <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+            <span style="font-family:monospace; color:var(--yellow); font-size:0.75rem; white-space:nowrap; min-width:60px;">socket</span>
+            <span style="color:var(--muted); font-size:0.8rem;">~/.local/share/adler/adler.sock — one global daemon for all projects</span>
+          </div>
+          <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+            <span style="font-family:monospace; color:var(--yellow); font-size:0.75rem; white-space:nowrap; min-width:60px;">start</span>
+            <span style="color:var(--muted); font-size:0.8rem;">CLI auto-spawns detached Bun process if socket not found; polls 100ms until ready</span>
+          </div>
+          <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+            <span style="font-family:monospace; color:var(--yellow); font-size:0.75rem; white-space:nowrap; min-width:60px;">stop</span>
+            <span style="color:var(--muted); font-size:0.8rem;">Graceful SIGTERM — waits for running agents. Auto-exits after 10 min inactivity.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── Data Model ─────────────────────────────────────── -->
+<section id="data-model">
+  <div class="section-label">Data Model</div>
+  <h2>Spans and events, all the way down</h2>
+  <p>Instead of separate tables for agents, workflow steps, and hooks, adler uses a single <strong style="color:var(--text);">spans</strong> table for every unit of work. A <code style="font-size:0.85em; color:var(--green);">kind</code> field says what it is. Adding new kinds — workflow steps, hooks, assistant runs — costs nothing: no schema change, no migration.</p>
+  <p>Everything that happens is an <strong style="color:var(--text);">event</strong> with an open-ended <code style="font-size:0.85em; color:var(--red);">type</code> string and a JSON payload. This is the OpenTelemetry model applied to agent orchestration.</p>
+
+  <div class="tables-grid">
+    <div class="table-card tc-sessions">
+      <div class="table-header">sessions</div>
+      <div class="table-row"><span class="col-name pk">id</span><span class="col-type">TEXT PK — UUID</span></div>
+      <div class="table-row"><span class="col-name">status</span><span class="col-type">active | completed | archived</span></div>
+      <div class="table-row"><span class="col-name">working_dir</span><span class="col-type">TEXT</span></div>
+      <div class="table-row"><span class="col-name">created_at</span><span class="col-type">INTEGER — ms</span></div>
+      <div style="margin-top:0.75rem; font-size:0.72rem; color:var(--muted); font-family:monospace;">No goal field — goal lives in context_items (type="goal")</div>
+    </div>
+
+    <div class="table-card tc-spans">
+      <div class="table-header">spans</div>
+      <div class="table-row"><span class="col-name pk">id</span><span class="col-type">TEXT PK — UUID</span></div>
+      <div class="table-row"><span class="col-name fk">session_id</span><span class="col-type">FK → sessions</span></div>
+      <div class="table-row"><span class="col-name fk">parent_id</span><span class="col-type">FK → spans (nullable)</span></div>
+      <div class="table-row"><span class="col-name">kind</span><span class="col-type">agent | workflow | step | hook</span></div>
+      <div class="table-row"><span class="col-name">name</span><span class="col-type">TEXT</span></div>
+      <div class="table-row"><span class="col-name">status</span><span class="col-type">pending|running|done|failed</span></div>
+      <div class="table-row"><span class="col-name">started_at</span><span class="col-type">INTEGER</span></div>
+      <div class="table-row"><span class="col-name">finished_at</span><span class="col-type">INTEGER (nullable)</span></div>
+      <div class="table-row"><span class="col-name">data</span><span class="col-type">JSON — kind-specific fields</span></div>
+    </div>
+
+    <div class="table-card tc-events">
+      <div class="table-header">events</div>
+      <div class="table-row"><span class="col-name pk">id</span><span class="col-type">INTEGER PK — auto</span></div>
+      <div class="table-row"><span class="col-name fk">session_id</span><span class="col-type">FK → sessions</span></div>
+      <div class="table-row"><span class="col-name fk">span_id</span><span class="col-type">FK → spans (nullable)</span></div>
+      <div class="table-row"><span class="col-name">type</span><span class="col-type">open-ended string</span></div>
+      <div class="table-row"><span class="col-name">data</span><span class="col-type">JSON — event payload</span></div>
+      <div class="table-row"><span class="col-name">timestamp</span><span class="col-type">INTEGER — ms</span></div>
+      <div style="margin-top:0.75rem; font-size:0.72rem; color:var(--muted); font-family:monospace;">agent.output · span.started · log.info · context.added · ...</div>
+    </div>
+
+    <div class="table-card tc-context">
+      <div class="table-header">context_items</div>
+      <div class="table-row"><span class="col-name pk">id</span><span class="col-type">TEXT PK — UUID</span></div>
+      <div class="table-row"><span class="col-name fk">session_id</span><span class="col-type">FK → sessions</span></div>
+      <div class="table-row"><span class="col-name">type</span><span class="col-type">goal | url | file | text | ...</span></div>
+      <div class="table-row"><span class="col-name">label</span><span class="col-type">TEXT (optional)</span></div>
+      <div class="table-row"><span class="col-name">description</span><span class="col-type">TEXT (optional)</span></div>
+      <div class="table-row"><span class="col-name">value</span><span class="col-type">JSON — type-specific payload</span></div>
+      <div class="table-row"><span class="col-name">created_at</span><span class="col-type">INTEGER</span></div>
+    </div>
+
+    <div class="span-tree-demo">
+      <div style="color:var(--muted); font-size:0.7rem; margin-bottom:0.6rem; text-transform:uppercase; letter-spacing:0.08em;">Example span tree — parallel agents in a workflow step</div>
+      <div style="color:var(--blue);">◆ session abc123 <span style="color:var(--muted);">— Implement payment feature</span></div>
+      <div style="padding-left:1.25rem; color:var(--green);">✓ span: workflow:payment <span style="color:var(--muted); font-size:0.72rem;">[kind=workflow]</span></div>
+      <div style="padding-left:2.5rem; color:var(--green);">✓ span: step:research <span style="color:var(--muted); font-size:0.72rem;">[kind=step]</span></div>
+      <div style="padding-left:3.75rem; color:var(--muted2);">✓ span: opencode:plan <span style="color:var(--muted); font-size:0.72rem;">[kind=agent] · 2m 14s</span></div>
+      <div style="padding-left:2.5rem; color:var(--yellow);">⟳ span: step:implement <span style="color:var(--muted); font-size:0.72rem;">[kind=step] · running</span></div>
+      <div style="padding-left:3.75rem; color:var(--yellow); display:flex; align-items:center; gap:0.5rem;">⟳ span: agent-1 <span style="color:var(--muted); font-size:0.72rem;">[kind=agent]</span> <span style="background:rgba(109,216,160,0.1); color:var(--green); font-size:0.65rem; padding:0 0.35rem; border-radius:3px; border:1px solid rgba(109,216,160,0.2);">parallel</span></div>
+      <div style="padding-left:3.75rem; color:var(--yellow); display:flex; align-items:center; gap:0.5rem;">⟳ span: agent-2 <span style="color:var(--muted); font-size:0.72rem;">[kind=agent]</span> <span style="background:rgba(109,216,160,0.1); color:var(--green); font-size:0.65rem; padding:0 0.35rem; border-radius:3px; border:1px solid rgba(109,216,160,0.2);">parallel</span></div>
+      <div style="margin-top:0.5rem; font-size:0.72rem; color:var(--muted);">← Parallel spans: same parent_id, overlapping timestamps. Phase 3 adds workflow/step/hook automatically — zero schema change.</div>
+    </div>
+  </div>
+
+  <!-- Span context propagation -->
+  <div style="margin-top:2.5rem;">
+    <h3 style="margin-bottom:0.5rem;">Span context propagation</h3>
+    <p>Context flows through environment variables — the subprocess equivalent of W3C Trace Context over HTTP headers. When the daemon spawns an agent it injects the span context. If that agent calls <code style="font-size:0.85em; color:var(--blue);">adler agent run</code>, the CLI reads <code style="font-size:0.85em; color:var(--yellow);">ADLER_SPAN_ID</code> from its own environment and passes it as the parent. Propagation works at any depth automatically.</p>
+    <div class="env-block">
+      <span class="env-key">ADLER_SESSION</span>=<span class="env-val">session-abc123</span><br>
+      <span class="env-key">ADLER_SPAN_ID</span>=<span class="env-val">span-xyz789</span>  &nbsp;<span class="env-cm">← this agent's span id</span><br>
+      <span class="env-key">ADLER_SOCKET</span>=<span class="env-val">~/.local/share/adler/adler.sock</span><br>
+      <span class="env-key">ADLER_AGENT_PROMPT</span>=<span class="env-val">"Implement the payment module"</span><br>
+      <span class="env-key">ADLER_CONTEXT</span>=<span class="env-val">[{"type":"goal","value":{"text":"..."}}, ...]</span>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── TUI ────────────────────────────────────────────── -->
+<section id="tui" style="max-width:900px;">
+  <div class="section-label">TUI Dashboard</div>
+  <h2>Live visibility into every session</h2>
+  <p>Running <code style="font-size:0.85em; color:var(--blue);">adler</code> with no arguments opens a live dashboard. The TUI holds an open socket connection to the daemon and re-renders on push events — no polling. Five tabs cover every view you need.</p>
+
+  <div style="margin-top:2.5rem;">
+    <div class="terminal-window">
+      <div class="terminal-chrome">
+        <div class="chrome-dot red"></div>
+        <div class="chrome-dot yellow"></div>
+        <div class="chrome-dot green"></div>
+        <div class="terminal-titlebar">adler — ~/git/myapp</div>
+      </div>
+      <div class="terminal-header">
+        <span class="session-status"><span class="status-dot"></span> active</span>
+        <span style="color:var(--muted);">·</span>
+        <span>session: <span style="color:var(--blue);">abc123</span></span>
+        <span style="color:var(--muted);">·</span>
+        <span style="color:var(--muted);">~/git/myapp</span>
+      </div>
+      <div class="tab-bar" id="tui-tabs">
+        <div class="tui-tab active" onclick="switchTab(0)">1: Overview</div>
+        <div class="tui-tab" onclick="switchTab(1)">2: Context</div>
+        <div class="tui-tab" onclick="switchTab(2)">3: Agents</div>
+        <div class="tui-tab" onclick="switchTab(3)">4: Traces</div>
+        <div class="tui-tab" onclick="switchTab(4)">5: Logs</div>
+      </div>
+      <div class="tab-content-area">
+
+        <!-- Tab 0: Overview -->
+        <div class="tab-pane active" id="tpane-0">
+          <div class="overview-grid">
+            <div>
+              <div class="ov-section-label">Session</div>
+              <div class="ov-row"><span class="ov-key">status</span><span style="color:var(--green);">● active</span></div>
+              <div class="ov-row"><span class="ov-key">dir</span><span style="color:var(--muted2);">~/git/myapp</span></div>
+              <div class="ov-row"><span class="ov-key">id</span><span style="color:var(--muted);">abc123</span></div>
+              <div class="ov-section-label" style="margin-top:1rem;">Recent activity</div>
+              <div class="agent-row running">
+                <span style="color:var(--green);">⟳ opencode:plan</span>
+                <span style="color:var(--muted); font-size:0.72rem;">0m 43s</span>
+              </div>
+              <div class="agent-row done">
+                <span style="color:var(--muted2);">✓ opencode:build</span>
+                <span style="color:var(--muted); font-size:0.72rem;">2m 14s</span>
+              </div>
+              <div class="agent-row failed">
+                <span style="color:var(--red);">✗ opencode:lint</span>
+                <span style="color:var(--muted); font-size:0.72rem;">exit 1</span>
+              </div>
+            </div>
+            <div>
+              <div class="ov-section-label">Context</div>
+              <div class="ctx-mini-row" style="border-left:2px solid var(--yellow);">
+                <span style="color:var(--yellow); font-size:0.68rem;">[goal]</span>
+                <span style="color:var(--muted2);">Implement payment feature</span>
+              </div>
+              <div class="ctx-mini-row" style="border-left:2px solid var(--blue);">
+                <span style="color:var(--blue); font-size:0.68rem;">[url] docs</span>
+                <span style="color:var(--muted);">stripe.com/docs</span>
+              </div>
+              <div class="ctx-mini-row" style="border-left:2px solid var(--red);">
+                <span style="color:var(--red); font-size:0.68rem;">[file] spec</span>
+                <span style="color:var(--muted);">./payment-spec.md</span>
+              </div>
+              <div class="ctx-mini-row" style="border-left:2px solid var(--muted);">
+                <span style="color:var(--muted); font-size:0.68rem;">[text] note</span>
+                <span style="color:var(--muted);">Use Stripe Elements</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 1: Context -->
+        <div class="tab-pane" id="tpane-1">
+          <div class="ctx-group">
+            <div class="ctx-group-label" style="color:var(--yellow);">goal</div>
+            <div class="ctx-item goal">
+              <span class="ctx-val">Implement payment feature</span>
+              <span class="ctx-meta">no label</span>
+            </div>
+          </div>
+          <div class="ctx-group">
+            <div class="ctx-group-label" style="color:var(--blue);">url — 2 items</div>
+            <div class="ctx-item url">
+              <span class="ctx-val">https://stripe.com/docs</span>
+              <span class="ctx-meta">docs · Stripe API reference</span>
+            </div>
+            <div class="ctx-item url">
+              <span class="ctx-val">https://github.com/org/repo/issues/42</span>
+              <span class="ctx-meta">issue · Payment tracking issue</span>
+            </div>
+          </div>
+          <div class="ctx-group">
+            <div class="ctx-group-label" style="color:var(--red);">file — 1 item</div>
+            <div class="ctx-item file">
+              <span class="ctx-val">./docs/payment-spec.md</span>
+              <span class="ctx-meta">spec · Feature specification</span>
+            </div>
+          </div>
+          <div class="ctx-group">
+            <div class="ctx-group-label" style="color:var(--muted);">text — 1 item</div>
+            <div class="ctx-item text">
+              <span class="ctx-val">Use Stripe Elements, not custom card UI</span>
+              <span class="ctx-meta">note</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Agents -->
+        <div class="tab-pane" id="tpane-2">
+          <div style="color:var(--muted); font-size:0.68rem; margin-bottom:0.75rem;">↑↓ navigate · enter attach (inline PTY) · o open external</div>
+          <div class="agent-card running">
+            <div class="ac-top">
+              <span class="ac-name running">⟳ opencode:plan</span>
+              <span class="ac-time">0m 43s</span>
+            </div>
+            <div class="ac-prompt">Create an implementation plan based on the spec...</div>
+            <div style="color:var(--muted); font-size:0.65rem; margin-top:0.2rem;">enter → suspend TUI, stream live PTY &nbsp;·&nbsp; o → agent.attach hook</div>
+          </div>
+          <div class="agent-card done">
+            <div class="ac-top">
+              <span class="ac-name">✓ opencode:build</span>
+              <span class="ac-time">2m 14s · exit 0</span>
+            </div>
+            <div class="ac-prompt">Implement the payment module in src/payments/...</div>
+            <div style="color:var(--muted); font-size:0.65rem; margin-top:0.2rem;">enter → replay stored PTY output</div>
+          </div>
+          <div class="agent-card failed">
+            <div class="ac-top">
+              <span class="ac-name failed">✗ opencode:lint</span>
+              <span class="ac-time">0m 12s · exit 1</span>
+            </div>
+            <div class="ac-prompt">Run linting on the codebase and fix all errors...</div>
+            <div style="color:var(--muted); font-size:0.65rem; margin-top:0.2rem;">enter → replay stored PTY output</div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Traces -->
+        <div class="tab-pane" id="tpane-3">
+          <div style="color:var(--muted); font-size:0.68rem; margin-bottom:0.75rem;">↑↓ navigate · enter expand/collapse</div>
+          <div style="color:var(--blue);">◆ session abc123 <span style="color:var(--muted); font-size:0.7rem;">active</span></div>
+          <div style="padding-left:1.25rem; color:var(--muted2);">✓ opencode:build <span style="color:var(--muted); font-size:0.7rem;">agent · 2m 14s</span></div>
+          <div style="padding-left:1.25rem; color:var(--yellow);">⟳ opencode:plan <span style="color:var(--muted); font-size:0.7rem;">agent · 0m 43s</span></div>
+          <div style="padding-left:2.5rem; color:var(--muted); font-size:0.72rem;">Creating implementation plan based on spec...</div>
+          <div style="padding-left:2.5rem; color:var(--muted); font-size:0.72rem;">Reading stripe docs reference...</div>
+          <div style="padding-left:2.5rem; color:var(--muted); font-size:0.72rem; display:flex; align-items:center; gap:0.4rem;"><span class="blink">▊</span></div>
+          <div style="padding-left:1.25rem; color:var(--red);">✗ opencode:lint <span style="color:var(--muted); font-size:0.7rem;">agent · exit 1</span></div>
+          <div style="padding-left:2.5rem; color:var(--red); font-size:0.72rem;">ESLint: 3 errors found in src/payments/index.ts</div>
+        </div>
+
+        <!-- Tab 4: Logs -->
+        <div class="tab-pane" id="tpane-4">
+          <div style="color:var(--muted); font-size:0.68rem; margin-bottom:0.75rem;">filter: all &nbsp;[i]nfo &nbsp;[w]arn &nbsp;[e]rror &nbsp;·&nbsp; auto-scroll: <span style="color:var(--green);">on</span> [f]</div>
+          <div class="log-row">
+            <span class="log-ts">12:35:47</span>
+            <span class="log-level info">info</span>
+            <span class="log-type">agent.output</span>
+            <span class="log-msg">opencode:plan — Reading stripe docs reference...</span>
+          </div>
+          <div class="log-row">
+            <span class="log-ts">12:35:44</span>
+            <span class="log-level info">info</span>
+            <span class="log-type">span.started</span>
+            <span class="log-msg">opencode:plan</span>
+          </div>
+          <div class="log-row">
+            <span class="log-ts">12:34:01</span>
+            <span class="log-level error">error</span>
+            <span class="log-type">span.failed</span>
+            <span class="log-msg">opencode:lint — exit 1</span>
+          </div>
+          <div class="log-row">
+            <span class="log-ts">12:33:55</span>
+            <span class="log-level info">info</span>
+            <span class="log-type">span.finished</span>
+            <span class="log-msg">opencode:build — exit 0</span>
+          </div>
+          <div class="log-row">
+            <span class="log-ts">12:31:41</span>
+            <span class="log-level info">info</span>
+            <span class="log-type">span.started</span>
+            <span class="log-msg">opencode:build</span>
+          </div>
+          <div class="log-row">
+            <span class="log-ts">12:31:40</span>
+            <span class="log-level info">info</span>
+            <span class="log-type">context.added</span>
+            <span class="log-msg">url [docs] — stripe.com/docs</span>
+          </div>
+        </div>
+
+      </div>
+      <div class="tui-footer" id="tui-footer">
+        <div class="hotkeys" id="footer-hotkeys">
+          <span class="hk"><span class="key">tab</span> switch tab</span>
+          <span class="hk"><span class="key">1–5</span> jump to tab</span>
+          <span class="hk"><span class="key">a</span> assistant</span>
+          <span class="hk"><span class="key">q</span> quit</span>
+        </div>
+        <span><span class="key">?</span> help</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── How an agent run works ─────────────────────────── -->
+<section>
+  <div class="section-label">Agent Execution</div>
+  <h2>What happens when you run an agent</h2>
+  <p>Every <code style="font-size:0.85em; color:var(--blue);">adler agent run</code> follows the same flow. The daemon is the authority throughout — spawning, tracking, streaming output, and broadcasting to any connected TUI clients in real time.</p>
+
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <h4>CLI connects</h4>
+      <p>SDK connects to socket. Auto-starts daemon if not running.</p>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <h4>Span created</h4>
+      <p>Daemon creates a span (kind=agent) in SQLite via Storage interface.</p>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <h4>PTY spawn</h4>
+      <p>Daemon calls Bun.spawn() with PTY. Injects ADLER_* env vars.</p>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">4</div>
+      <h4>Output streams</h4>
+      <p>Each stdout line → agent.output event in DB → pushed to TUI.</p>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">5</div>
+      <h4>Span closes</h4>
+      <p>On exit: span updated to done/failed, event emitted, TUI re-renders.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── CLI ───────────────────────────────────────────── -->
+<section id="cli">
+  <div class="section-label">CLI</div>
+  <h2>Control everything from the terminal</h2>
+  <p>All commands are thin wrappers around SDK calls. Session context is resolved automatically from <code style="font-size:0.85em; color:var(--blue);">--session</code> flag, <code style="font-size:0.85em; color:var(--yellow);">ADLER_SESSION</code> env, or <code style="font-size:0.85em; color:var(--muted2);">.adler/.session</code> file.</p>
+
+  <div class="cli-grid">
+    <div class="cli-group">
+      <div class="cli-group-title">Sessions</div>
+      <div class="cmd">
+        <span class="cmd-text">adler</span>
+        <span class="cmd-desc">Open TUI dashboard for current session</span>
+      </div>
+      <div class="cmd">
+        <span class="cmd-text">adler new <span class="arg">[--goal "..."]</span></span>
+        <span class="cmd-desc">Create session, write id to .adler/.session</span>
+      </div>
+      <div class="cmd">
+        <span class="cmd-text">adler session list</span>
+        <span class="cmd-desc">List all sessions across all projects</span>
+      </div>
+      <div class="cmd">
+        <span class="cmd-text">adler init</span>
+        <span class="cmd-desc">Scaffold .adler/adler.ts in current project</span>
+      </div>
+    </div>
+
+    <div class="cli-group">
+      <div class="cli-group-title">Agents</div>
+      <div class="cmd">
+        <span class="cmd-text">adler agent run <span class="arg">--agent &lt;type&gt; &lt;prompt&gt;</span></span>
+        <span class="cmd-desc">Spawn agent, returns span id</span>
+      </div>
+      <div class="cmd">
+        <span class="cmd-text">adler agent wait <span class="arg">[--name &lt;n&gt;]</span></span>
+        <span class="cmd-desc">Block until span is done or failed</span>
+      </div>
+      <div class="cmd">
+        <span class="cmd-text">adler agent status <span class="arg">[--name &lt;n&gt;]</span></span>
+        <span class="cmd-desc">Print current span status</span>
+      </div>
+      <div class="cmd">
+        <span class="cmd-text">adler agent read <span class="arg">[--name &lt;n&gt;]</span></span>
+        <span class="cmd-desc">Stream agent PTY output to stdout</span>
+      </div>
+      <div class="cmd">
+        <span class="cmd-text">adler agent list</span>
+        <span class="cmd-desc">List all agent spans for session</span>
+      </div>
+    </div>
+
+    <div class="cli-group">
+      <div class="cli-group-title">Context</div>
+      <div class="cmd">
+        <span class="cmd-text">adler context add <span class="arg">--type &lt;t&gt; &lt;value&gt;</span></span>
+        <span class="cmd-desc">Add context item (with optional --label, --description)</span>
+      </div>
+      <div class="cmd">
+        <span class="cmd-text">adler context list</span>
+        <span class="cmd-desc">List all context items for session</span>
+      </div>
+      <div class="cmd">
+        <span class="cmd-text">adler context get <span class="arg">[--type t] [--label l]</span></span>
+        <span class="cmd-desc">Filtered output — used in workflow step prompts</span>
+      </div>
+    </div>
+
+    <div class="cli-group">
+      <div class="cli-group-title">Daemon</div>
+      <div class="cmd">
+        <span class="cmd-text">adler daemon stop</span>
+        <span class="cmd-desc">Graceful shutdown — waits for running agents</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── Config ────────────────────────────────────────── -->
+<section>
+  <div class="section-label">Configuration</div>
+  <h2>Your stack, your config</h2>
+  <p>adler is configured with a TypeScript file. Global config at <code style="font-size:0.85em; color:var(--blue);">~/.config/adler/adler.ts</code>, project config at <code style="font-size:0.85em; color:var(--blue);">.adler/adler.ts</code>. Project config merges over global. Agents are just functions returning shell commands.</p>
+
+  <pre class="code-block"><code><span class="c-kw">import type</span> { <span class="c-ty">AdlerConfig</span> } <span class="c-kw">from</span> <span class="c-str">"@adler/sdk"</span>
+
+<span class="c-kw">const</span> config: <span class="c-ty">AdlerConfig</span> = {
+  agent: {
+    agents: {
+      <span class="c-cm">// Any CLI agent — return a shell command string</span>
+      opencode: ({ prompt, subagent }) =>
+        <span class="c-str">`opencode run --agent <span class="c-fn">${subagent}</span> "<span class="c-fn">${prompt}</span>"`</span>,
+    },
+    <span class="c-cm">// Invoked when pressing 'o' on an agent in the TUI</span>
+    attach: ({ agentId }) =>
+      <span class="c-str">`tmux new-window "adler agent read --name <span class="c-fn">${agentId}</span>"`</span>,
+  },
+}
+
+<span class="c-kw">export default</span> config</code></pre>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── Roadmap ────────────────────────────────────────── -->
+<section id="roadmap">
+  <div class="section-label">Roadmap</div>
+  <h2>Four phases to a complete platform</h2>
+  <p>Each phase produces a working, useful system. The span and event data model is designed so that Phases 3 and 4 add capabilities without touching the schema.</p>
+
+  <div class="phases">
+    <div class="phase current">
+      <div>
+        <div class="phase-badge now">Phase 1 + 2 — Now</div>
+        <h3>Core + TUI</h3>
+      </div>
+      <div>
+        <p>The foundation. A global daemon managing sessions and agents. Full SQLite-backed span/event tracing. SDK, CLI, and a live Ink dashboard with five tabs — overview, context, agents, traces, and logs.</p>
+      </div>
+      <div class="phase-tags">
+        <span class="tag">adlerd daemon</span>
+        <span class="tag">@adler/sdk</span>
+        <span class="tag">CLI</span>
+        <span class="tag">Ink TUI</span>
+        <span class="tag">SQLite</span>
+        <span class="tag">PTY attach</span>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div>
+        <div class="phase-badge next">Phase 3 — Next</div>
+        <h3>Workflows, Hooks &amp; Plugins</h3>
+      </div>
+      <div>
+        <p>YAML or TypeScript workflow definitions with sequential and parallel steps. Before/after hooks for any adler event. npm plugin system for distributing agent configs — first-party plugin: @adler/opencode.</p>
+      </div>
+      <div class="phase-tags">
+        <span class="tag">adler run</span>
+        <span class="tag">Workflow engine</span>
+        <span class="tag">Hooks</span>
+        <span class="tag">@adler/opencode</span>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div>
+        <div class="phase-badge next">Phase 4 — Planned</div>
+        <h3>adler Assistant</h3>
+      </div>
+      <div>
+        <p>An AI agent with full awareness of the current session — all spans, events, and context. Ask it anything about the session, or let it auto-orchestrate: read state, decide what to run next, iterate until done.</p>
+      </div>
+      <div class="phase-tags">
+        <span class="tag">adler assistant</span>
+        <span class="tag">--auto mode</span>
+        <span class="tag">Session-aware AI</span>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div>
+        <div class="phase-badge future">Future</div>
+        <h3>Web UI &amp; Remote Sessions</h3>
+      </div>
+      <div>
+        <p>A browser dashboard built on @adler/sdk — just another client. Remote daemon support via TCP socket allows connecting from anywhere. Multi-user sessions for team visibility.</p>
+      </div>
+      <div class="phase-tags">
+        <span class="tag">Web dashboard</span>
+        <span class="tag">Remote daemon</span>
+        <span class="tag">Multi-user</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  adler &nbsp;·&nbsp; Phase 1 + 2 Design Spec &nbsp;·&nbsp; 2026-06-11 &nbsp;·&nbsp; <span style="color:var(--muted);">Bun · TypeScript · Ink · SQLite</span>
+</footer>
+
+<script>
+  const tabFooters = [
+    // overview
+    '<span class="hk"><span class="key">tab</span> switch</span><span class="hk"><span class="key">1–5</span> jump</span><span class="hk"><span class="key">a</span> assistant</span><span class="hk"><span class="key">q</span> quit</span>',
+    // context
+    '<span class="hk"><span class="key">↑↓</span> navigate</span><span class="hk"><span class="key">tab</span> switch</span><span class="hk"><span class="key">a</span> assistant</span><span class="hk"><span class="key">q</span> quit</span>',
+    // agents
+    '<span class="hk"><span class="key">↑↓</span> navigate</span><span class="hk"><span class="key">enter</span> attach</span><span class="hk"><span class="key">o</span> open external</span><span class="hk"><span class="key">tab</span> switch</span>',
+    // traces
+    '<span class="hk"><span class="key">↑↓</span> navigate</span><span class="hk"><span class="key">enter</span> expand</span><span class="hk"><span class="key">tab</span> switch</span><span class="hk"><span class="key">a</span> assistant</span>',
+    // logs
+    '<span class="hk"><span class="key">i/w/e</span> filter</span><span class="hk"><span class="key">f</span> auto-scroll</span><span class="hk"><span class="key">tab</span> switch</span><span class="hk"><span class="key">q</span> quit</span>',
+  ];
+
+  function switchTab(idx) {
+    document.querySelectorAll('.tui-tab').forEach((t, i) => {
+      t.classList.toggle('active', i === idx);
+    });
+    document.querySelectorAll('.tab-pane').forEach((p, i) => {
+      p.classList.toggle('active', i === idx);
+    });
+    document.getElementById('footer-hotkeys').innerHTML = tabFooters[idx];
+  }
+</script>
+
+</body>
+</html>
