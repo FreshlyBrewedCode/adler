@@ -2,9 +2,14 @@ import { Database } from "bun:sqlite"
 import type { Storage } from "./storage"
 import type {
   Session,
+  SessionStatus,
   Span,
+  SpanKind,
+  SpanStatus,
   Event,
+  EventType,
   ContextItem,
+  ContextItemType,
   CreateSessionInput,
   CreateSpanInput,
   CreateEventInput,
@@ -91,20 +96,20 @@ export class SQLiteStorage implements Storage {
     const row = this.db.query("SELECT * FROM sessions WHERE id = ?").get(id) as Record<string, unknown> | null
     if (!row) return Promise.resolve(null)
     return Promise.resolve({
-      id: row.id as string,
-      status: row.status as Session["status"],
-      working_dir: row.working_dir as string,
-      created_at: row.created_at as number,
+      id: String(row.id),
+      status: String(row.status) as SessionStatus,
+      working_dir: String(row.working_dir),
+      created_at: Number(row.created_at),
     })
   }
 
   listSessions(): Promise<Session[]> {
     const rows = this.db.query("SELECT * FROM sessions ORDER BY created_at DESC").all() as Record<string, unknown>[]
     return Promise.resolve(rows.map(r => ({
-      id: r.id as string,
-      status: r.status as Session["status"],
-      working_dir: r.working_dir as string,
-      created_at: r.created_at as number,
+      id: String(r.id),
+      status: String(r.status) as SessionStatus,
+      working_dir: String(r.working_dir),
+      created_at: Number(r.created_at),
     })))
   }
 
@@ -159,30 +164,30 @@ export class SQLiteStorage implements Storage {
     const row = this.db.query("SELECT * FROM spans WHERE id = ?").get(id) as Record<string, unknown> | null
     if (!row) return Promise.resolve(null)
     return Promise.resolve({
-      id: row.id as string,
-      session_id: row.session_id as string,
-      parent_id: row.parent_id as string | null,
-      kind: row.kind as Span["kind"],
-      name: row.name as string,
-      status: row.status as Span["status"],
-      started_at: row.started_at as number,
-      finished_at: row.finished_at as number | null,
-      data: JSON.parse((row.data as string) ?? "{}"),
+      id: String(row.id),
+      session_id: String(row.session_id),
+      parent_id: row.parent_id != null ? String(row.parent_id) : null,
+      kind: String(row.kind) as SpanKind,
+      name: String(row.name),
+      status: String(row.status) as SpanStatus,
+      started_at: Number(row.started_at),
+      finished_at: row.finished_at != null ? Number(row.finished_at) : null,
+      data: JSON.parse(String(row.data)),
     })
   }
 
   listSpans(sessionId: string): Promise<Span[]> {
     const rows = this.db.query("SELECT * FROM spans WHERE session_id = ? ORDER BY started_at ASC").all(sessionId) as Record<string, unknown>[]
     return Promise.resolve(rows.map(r => ({
-      id: r.id as string,
-      session_id: r.session_id as string,
-      parent_id: r.parent_id as string | null,
-      kind: r.kind as Span["kind"],
-      name: r.name as string,
-      status: r.status as Span["status"],
-      started_at: r.started_at as number,
-      finished_at: r.finished_at as number | null,
-      data: JSON.parse((r.data as string) ?? "{}"),
+      id: String(r.id),
+      session_id: String(r.session_id),
+      parent_id: r.parent_id != null ? String(r.parent_id) : null,
+      kind: String(r.kind) as SpanKind,
+      name: String(r.name),
+      status: String(r.status) as SpanStatus,
+      started_at: Number(r.started_at),
+      finished_at: r.finished_at != null ? Number(r.finished_at) : null,
+      data: JSON.parse(String(r.data)),
     })))
   }
 
@@ -211,12 +216,12 @@ export class SQLiteStorage implements Storage {
     const sql = `SELECT * FROM events WHERE ${conditions.join(" AND ")} ORDER BY timestamp DESC`
     const rows = this.db.query(sql).all(...values) as Record<string, unknown>[]
     return Promise.resolve(rows.map(r => ({
-      id: r.id as number,
-      session_id: r.session_id as string,
-      span_id: r.span_id as string | null,
-      type: r.type as Event["type"],
-      data: JSON.parse((r.data as string) ?? "{}"),
-      timestamp: r.timestamp as number,
+      id: Number(r.id),
+      session_id: String(r.session_id),
+      span_id: r.span_id != null ? String(r.span_id) : null,
+      type: String(r.type) as EventType,
+      data: JSON.parse(String(r.data)),
+      timestamp: Number(r.timestamp),
     })))
   }
 
@@ -247,13 +252,13 @@ export class SQLiteStorage implements Storage {
     const sql = `SELECT * FROM context_items WHERE ${conditions.join(" AND ")} ORDER BY created_at DESC`
     const rows = this.db.query(sql).all(...values) as Record<string, unknown>[]
     return Promise.resolve(rows.map(r => ({
-      id: r.id as string,
-      session_id: r.session_id as string,
-      type: r.type as ContextItem["type"],
-      label: r.label as string | null,
-      description: r.description as string | null,
-      value: JSON.parse((r.value as string) ?? "{}"),
-      created_at: r.created_at as number,
+      id: String(r.id),
+      session_id: String(r.session_id),
+      type: String(r.type) as ContextItemType,
+      label: r.label != null ? String(r.label) : null,
+      description: r.description != null ? String(r.description) : null,
+      value: JSON.parse(String(r.value)),
+      created_at: Number(r.created_at),
     })))
   }
 

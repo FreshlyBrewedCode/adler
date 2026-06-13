@@ -204,7 +204,7 @@ describe("SQLiteStorage", () => {
     expect(items[0].label).toBe("")
   })
 
-  test("listEvents filter by empty type string", async () => {
+  test("listEvents filter by undefined type", async () => {
     const session = await storage.createSession({ working_dir: "/tmp" })
     await storage.createEvent({ session_id: session.id, type: "log.info", data: {} })
     const events = await storage.listEvents(session.id, { type: undefined })

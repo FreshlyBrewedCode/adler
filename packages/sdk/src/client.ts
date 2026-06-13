@@ -113,6 +113,7 @@ export function createClient(socketPath: string = SOCKET_PATH): Client {
   })
 
   socket.on("close", () => {
+    closed = true
     for (const [, req] of pending) {
       req.reject(new Error("Socket closed"))
     }
