@@ -22,7 +22,7 @@ export async function run(args: string[], subcommand: string): Promise<void> {
           console.error("Usage: adler agent run --agent <type> [--name <name>] <prompt>")
           process.exit(1)
         }
-        if (!flags.agent) {
+        if (!flags.agent || flags.agent === "true") {
           console.error("Usage: adler agent run --agent <type> [--name <name>] <prompt>")
           process.exit(1)
         }
@@ -37,7 +37,7 @@ export async function run(args: string[], subcommand: string): Promise<void> {
         break
       }
       case "wait": {
-        if (!flags.name) {
+        if (!flags.name || flags.name === "true") {
           console.error("Usage: adler agent wait --name <name>")
           process.exit(1)
         }
@@ -46,7 +46,7 @@ export async function run(args: string[], subcommand: string): Promise<void> {
         break
       }
       case "status": {
-        if (!flags.name) {
+        if (!flags.name || flags.name === "true") {
           console.error("Usage: adler agent status --name <name>")
           process.exit(1)
         }
@@ -62,7 +62,7 @@ export async function run(args: string[], subcommand: string): Promise<void> {
         break
       }
       case "read": {
-        if (!flags.name) {
+        if (!flags.name || flags.name === "true") {
           console.error("Usage: adler agent read --name <name>")
           process.exit(1)
         }

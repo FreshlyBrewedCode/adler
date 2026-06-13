@@ -17,7 +17,7 @@ export async function run(args: string[], subcommand: string): Promise<void> {
   try {
     switch (subcommand) {
       case "add": {
-        if (!flags.type) {
+        if (!flags.type || flags.type === "true") {
           console.error("Usage: adler context add --type <type> [--label <label>] [--description <description>] <value>")
           process.exit(1)
         }
