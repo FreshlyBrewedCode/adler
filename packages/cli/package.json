@@ -1,0 +1,15 @@
+{
+  "name": "adler-cli",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "bin": {
+    "adler": "src/index.ts"
+  },
+  "scripts": {
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@adler/sdk": "workspace:*"
+  }
+}
