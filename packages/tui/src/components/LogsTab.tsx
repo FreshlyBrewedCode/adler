@@ -30,11 +30,12 @@ export function LogsTab({
   })
 
   const display = filtered.slice(0, 50)
+  const safeIndex = Math.min(selectedIndex, display.length - 1)
 
   return (
     <Box flexDirection="column">
       {display.map((event, i) => {
-        const isSelected = i === selectedIndex
+        const isSelected = i === safeIndex
         const level = levelFromType(event.type)
         const message = (event.data?.message as string) ?? JSON.stringify(event.data)
         return (

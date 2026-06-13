@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useCallback } from "react"
+import { useEffect, useReducer } from "react"
 import { Box, useInput, useApp } from "ink"
 import { createClient } from "@adler/sdk"
 import { initialState, reducer } from "./types"
@@ -19,25 +19,40 @@ export function App({ sessionId }: { sessionId: string }) {
     const client = createClient()
     let cleanup: (() => void) | undefined
 
-    client.subscribe(sessionId, (msg) => {
-      if (msg.type === "snapshot") {
-        dispatch({ type: "snapshot", payload: msg.payload })
-      } else if (msg.type === "event") {
+    ;(async () => {
+      try {
+        const unsub = await client.subscribe(sessionId, (msg) => {
+          if (msg.type === "snapshot") {
+            dispatch({ type: "snapshot", payload: msg.payload })
+          } else if (msg.type === "event") {
+            dispatch({
+              type: "event",
+              payload: {
+                id: Date.now(),
+                session_id: sessionId,
+                span_id: (msg.payload as any)?.span_id ?? null,
+                type: msg.event,
+                data: msg.payload as any,
+                timestamp: Date.now(),
+              },
+            })
+          }
+        })
+        cleanup = unsub
+      } catch (err) {
         dispatch({
           type: "event",
           payload: {
             id: Date.now(),
             session_id: sessionId,
-            span_id: (msg.payload as any)?.span_id ?? null,
-            type: (msg.payload as any)?.type ?? "log.info",
-            data: msg.payload as any,
+            span_id: null,
+            type: "log.error",
+            data: { message: String(err) },
             timestamp: Date.now(),
           },
         })
       }
-    }).then((unsub) => {
-      cleanup = unsub
-    })
+    })()
 
     return () => {
       cleanup?.()

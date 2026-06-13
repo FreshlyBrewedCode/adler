@@ -1,7 +1,6 @@
 import { render } from "ink"
 import React from "react"
 import { App } from "./app"
-import { createClient } from "@adler/sdk"
 import { readFileSync, existsSync } from "fs"
 import { join } from "path"
 
@@ -15,7 +14,6 @@ function resolveSessionId(): string | undefined {
 }
 
 export async function runTui(): Promise<void> {
-  const client = createClient()
   const sessionId = resolveSessionId()
   if (!sessionId) {
     console.error("No active session. Run `adler new` first.")
@@ -23,5 +21,4 @@ export async function runTui(): Promise<void> {
   }
   const { waitUntilExit } = render(React.createElement(App, { sessionId }))
   await waitUntilExit()
-  client.close()
 }

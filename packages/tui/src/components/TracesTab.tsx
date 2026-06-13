@@ -16,14 +16,12 @@ function TreeNode({
   depth,
   selectedIndex,
   currentIndex,
-  onIndex,
 }: {
   span: Span
   spans: Span[]
   depth: number
   selectedIndex: number
   currentIndex: { value: number }
-  onIndex: (span: Span) => void
 }) {
   const isSelected = currentIndex.value === selectedIndex
   currentIndex.value++
@@ -46,7 +44,6 @@ function TreeNode({
           depth={depth + 1}
           selectedIndex={selectedIndex}
           currentIndex={currentIndex}
-          onIndex={onIndex}
         />
       ))}
     </Box>
@@ -66,7 +63,6 @@ export function TracesTab({ spans, selectedIndex }: { spans: Span[]; selectedInd
           depth={0}
           selectedIndex={selectedIndex}
           currentIndex={currentIndex}
-          onIndex={() => {}}
         />
       ))}
     </Box>
