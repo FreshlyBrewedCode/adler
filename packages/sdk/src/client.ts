@@ -2,7 +2,7 @@ import { connect } from "net"
 import { SOCKET_PATH } from "./paths"
 import type { Session, Span, Event, ContextItem, CreateSessionInput, CreateSpanInput, CreateEventInput, AddContextItemInput, EventFilter, ContextFilter, SpanStatus } from "./types"
 
-type IpcMessage =
+export type IpcMessage =
   | { type: "response"; id: string; payload: unknown }
   | { type: "error"; id: string; error: string }
   | { type: "snapshot"; payload: { session: Session; spans: Span[]; events: Event[]; context: ContextItem[] } }
@@ -80,28 +80,43 @@ export function createClient(socketPath: string = SOCKET_PATH): Client {
     let lines: string[]
     while ((lines = buffer.split("\n")).length > 1) {
       buffer = lines.pop()!
-      const line = lines[0]
-      if (!line) continue
-      try {
-        const msg = JSON.parse(line) as IpcMessage
-        if (msg.type === "response" || msg.type === "error") {
-          const req = pending.get(msg.id)
-          if (req) {
-            pending.delete(msg.id)
-            if (msg.type === "error") req.reject(new Error(msg.error))
-            else req.resolve(msg.payload)
-          }
-        } else {
-          for (const h of eventHandlers) {
-            if (h.event === "*" || h.event === msg.type) {
-              h.handler(msg)
+      for (const line of lines) {
+        if (!line) continue
+        try {
+          const msg = JSON.parse(line) as IpcMessage
+          if (msg.type === "response" || msg.type === "error") {
+            const req = pending.get(msg.id)
+            if (req) {
+              pending.delete(msg.id)
+              if (msg.type === "error") req.reject(new Error(msg.error))
+              else req.resolve(msg.payload)
+            }
+          } else {
+            for (const h of eventHandlers) {
+              if (h.event === "*" || h.event === msg.type) {
+                h.handler(msg)
+              }
             }
           }
+        } catch (e) {
+          // ignore malformed lines
         }
-      } catch (e) {
-        // ignore malformed lines
       }
     }
+  })
+
+  socket.on("error", (err) => {
+    for (const [, req] of pending) {
+      req.reject(err)
+    }
+    pending.clear()
+  })
+
+  socket.on("close", () => {
+    for (const [, req] of pending) {
+      req.reject(new Error("Socket closed"))
+    }
+    pending.clear()
   })
 
   const client: Client = {
@@ -131,18 +146,24 @@ export function createClient(socketPath: string = SOCKET_PATH): Client {
       list: () => send("context.list", {}),
     },
     async subscribe(sessionId, handler) {
-      await send("subscribe", { session_id: sessionId })
       const wrapped = (msg: unknown) => handler(msg as IpcMessage)
       const entry = { event: "*", handler: wrapped }
       eventHandlers.push(entry)
+      try {
+        await send("subscribe", { session_id: sessionId })
+      } catch (err) {
+        eventHandlers = eventHandlers.filter(h => h !== entry)
+        throw err
+      }
       return () => {
         eventHandlers = eventHandlers.filter(h => h !== entry)
       }
     },
     on(event, handler) {
-      eventHandlers.push({ event, handler })
+      const entry = { event, handler }
+      eventHandlers.push(entry)
       return () => {
-        eventHandlers = eventHandlers.filter(h => h.handler !== handler)
+        eventHandlers = eventHandlers.filter(h => h !== entry)
       }
     },
     close() {

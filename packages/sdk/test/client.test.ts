@@ -1,13 +1,67 @@
-import { test, expect, describe, afterAll } from "bun:test"
-import { createServer } from "net"
+import { test, expect, describe, afterAll, beforeEach, afterEach } from "bun:test"
+import { createServer, type Socket } from "net"
 import { createClient } from "../src/client"
 
-const FAKE_SOCK = "/tmp/fake.sock"
+const FAKE_SOCK = "/tmp/fake-sdk-test.sock"
 
-const server = createServer(() => {})
+let clientSockets: Socket[] = []
+let nextSocketResolve: ((socket: Socket) => void) | null = null
+
+const server = createServer((socket) => {
+  clientSockets.push(socket)
+  if (nextSocketResolve) {
+    nextSocketResolve(socket)
+    nextSocketResolve = null
+  }
+  socket.on("data", (data) => {
+    const text = data.toString()
+    for (const line of text.trim().split("\n")) {
+      if (!line) continue
+      try {
+        const msg = JSON.parse(line)
+        if (msg.type === "session.create") {
+          socket.write(JSON.stringify({ type: "response", id: msg.id, payload: { id: "sess-1", status: "active", working_dir: "/tmp", created_at: 0 } }) + "\n")
+        } else if (msg.type === "session.list") {
+          socket.write(JSON.stringify({ type: "response", id: msg.id, payload: [] }) + "\n")
+        } else if (msg.type === "subscribe") {
+          socket.write(JSON.stringify({ type: "response", id: msg.id, payload: {} }) + "\n")
+          // send a fake event
+          socket.write(JSON.stringify({ type: "event", event: "test", payload: { foo: 1 } }) + "\n")
+        } else if (msg.type === "agent.list") {
+          socket.write(JSON.stringify({ type: "response", id: msg.id, payload: [] }) + "\n")
+        } else {
+          socket.write(JSON.stringify({ type: "response", id: msg.id, payload: {} }) + "\n")
+        }
+      } catch {
+        // ignore
+      }
+    }
+  })
+  socket.on("close", () => {
+    clientSockets = clientSockets.filter(c => c !== socket)
+  })
+})
 await new Promise<void>((resolve) => server.listen(FAKE_SOCK, () => resolve()))
 
+function waitForSocket(): Promise<Socket> {
+  return new Promise((resolve) => {
+    nextSocketResolve = resolve
+  })
+}
+
+beforeEach(async () => {
+  // Clean up any lingering sockets from previous tests
+  for (const s of clientSockets) {
+    try { s.destroy() } catch { /* ignore */ }
+  }
+  clientSockets = []
+  nextSocketResolve = null
+  // give a moment for the server to clean up
+  await new Promise(r => setTimeout(r, 10))
+})
+
 afterAll(() => {
+  for (const s of clientSockets) s.destroy()
   server.close()
 })
 
@@ -26,6 +80,88 @@ describe("Client", () => {
     process.env.ADLER_SESSION = oldSession
     process.env.ADLER_SPAN_ID = oldSpan
     client.close()
+  })
+
+  test("request/response matching", async () => {
+    const client = createClient(FAKE_SOCK)
+    const result = await client.session.create({ working_dir: "/tmp" })
+    expect(result.id).toBe("sess-1")
+    client.close()
+  })
+
+  test("message parsing handles multiple lines in one chunk", async () => {
+    const client = createClient(FAKE_SOCK)
+    const events: unknown[] = []
+    const unsub = client.on("event", (e) => events.push(e))
+
+    const socket = await waitForSocket()
+    socket.write(
+      JSON.stringify({ type: "event", event: "ev1", payload: 1 }) + "\n" +
+      JSON.stringify({ type: "event", event: "ev2", payload: 2 }) + "\n" +
+      JSON.stringify({ type: "event", event: "ev3", payload: 3 }) + "\n"
+    )
+
+    await new Promise(r => setTimeout(r, 50))
+    expect(events.length).toBe(3)
+    expect((events[0] as { payload: number }).payload).toBe(1)
+    expect((events[1] as { payload: number }).payload).toBe(2)
+    expect((events[2] as { payload: number }).payload).toBe(3)
+
+    unsub()
+    client.close()
+  })
+
+  test("event routing routes to matching handlers", async () => {
+    const client = createClient(FAKE_SOCK)
+    const events: unknown[] = []
+    client.on("event", (e) => events.push(e))
+
+    const socket = await waitForSocket()
+    socket.write(JSON.stringify({ type: "event", event: "routed", payload: { x: 1 } }) + "\n")
+
+    await new Promise(r => setTimeout(r, 50))
+    expect(events.length).toBe(1)
+    client.close()
+  })
+
+  test("subscribe sends subscribe command and receives events", async () => {
+    const client = createClient(FAKE_SOCK)
+    const msgs: unknown[] = []
+    const unsub = await client.subscribe("sess-1", (msg) => msgs.push(msg))
+
+    await new Promise(r => setTimeout(r, 50))
+    expect(msgs.length).toBeGreaterThanOrEqual(1)
+
+    unsub()
+    client.close()
+  })
+
+  test("on() unsubscribe removes only the registered entry", async () => {
+    const client = createClient(FAKE_SOCK)
+    const events: unknown[] = []
+    const handler = (e: unknown) => events.push(e)
+    const unsub1 = client.on("event", handler)
+    const unsub2 = client.on("event", handler)
+
+    const socket = await waitForSocket()
+    socket.write(JSON.stringify({ type: "event", event: "dup", payload: 1 }) + "\n")
+    await new Promise(r => setTimeout(r, 50))
+    expect(events.length).toBe(2)
+
+    unsub1()
+    socket.write(JSON.stringify({ type: "event", event: "dup", payload: 2 }) + "\n")
+    await new Promise(r => setTimeout(r, 50))
+    expect(events.length).toBe(3)
+
+    unsub2()
+    client.close()
+  })
+
+  test("close rejects pending requests", async () => {
+    const client = createClient(FAKE_SOCK)
+    const promise = client.agent.list()
+    client.close()
+    await expect(promise).rejects.toThrow("Socket closed")
   })
 
   test("client has all namespace methods", () => {

@@ -25,6 +25,16 @@ describe("SQLiteStorage", () => {
     expect(result).toBeNull()
   })
 
+  test("getSession returns correct session for existing", async () => {
+    const session = await storage.createSession({ working_dir: "/tmp/test", status: "completed" })
+    const result = await storage.getSession(session.id)
+    expect(result).not.toBeNull()
+    expect(result!.id).toBe(session.id)
+    expect(result!.status).toBe("completed")
+    expect(result!.working_dir).toBe("/tmp/test")
+    expect(result!.created_at).toBe(session.created_at)
+  })
+
   test("listSessions returns all sessions", async () => {
     await storage.createSession({ working_dir: "/a" })
     await storage.createSession({ working_dir: "/b" })
@@ -53,6 +63,35 @@ describe("SQLiteStorage", () => {
     expect(spans[0].name).toBe("test-agent")
   })
 
+  test("createSpan with parent_id", async () => {
+    const session = await storage.createSession({ working_dir: "/tmp" })
+    const parent = await storage.createSpan({ session_id: session.id, kind: "workflow", name: "parent" })
+    const child = await storage.createSpan({
+      session_id: session.id,
+      parent_id: parent.id,
+      kind: "step",
+      name: "child",
+    })
+    expect(child.parent_id).toBe(parent.id)
+    const spans = await storage.listSpans(session.id)
+    expect(spans.length).toBe(2)
+    const found = spans.find(s => s.id === child.id)
+    expect(found!.parent_id).toBe(parent.id)
+  })
+
+  test("createSpan with explicit status", async () => {
+    const session = await storage.createSession({ working_dir: "/tmp" })
+    const span = await storage.createSpan({
+      session_id: session.id,
+      kind: "agent",
+      name: "test",
+      status: "running",
+    })
+    expect(span.status).toBe("running")
+    const found = await storage.getSpan(span.id)
+    expect(found!.status).toBe("running")
+  })
+
   test("updateSpan merges data", async () => {
     const session = await storage.createSession({ working_dir: "/tmp" })
     const span = await storage.createSpan({ session_id: session.id, kind: "agent", name: "x" })
@@ -60,6 +99,29 @@ describe("SQLiteStorage", () => {
     const updated = await storage.getSpan(span.id)
     expect(updated!.status).toBe("done")
     expect(updated!.finished_at).toBeNumber()
+  })
+
+  test("updateSpan JSON data round-trip", async () => {
+    const session = await storage.createSession({ working_dir: "/tmp" })
+    const span = await storage.createSpan({ session_id: session.id, kind: "agent", name: "x" })
+    await storage.updateSpan(span.id, { data: { key: "value", nested: { a: 1 } } })
+    const updated = await storage.getSpan(span.id)
+    expect(updated!.data).toEqual({ key: "value", nested: { a: 1 } })
+  })
+
+  test("getSpan returns null for missing id", async () => {
+    const result = await storage.getSpan("not-real")
+    expect(result).toBeNull()
+  })
+
+  test("getSpan returns correct span for existing", async () => {
+    const session = await storage.createSession({ working_dir: "/tmp" })
+    const span = await storage.createSpan({ session_id: session.id, kind: "agent", name: "test", data: { x: 1 } })
+    const result = await storage.getSpan(span.id)
+    expect(result).not.toBeNull()
+    expect(result!.id).toBe(span.id)
+    expect(result!.name).toBe("test")
+    expect(result!.data).toEqual({ x: 1 })
   })
 
   test("createEvent and listEvents", async () => {
@@ -73,6 +135,34 @@ describe("SQLiteStorage", () => {
     const events = await storage.listEvents(session.id)
     expect(events.length).toBe(1)
     expect(events[0].type).toBe("log.info")
+  })
+
+  test("createEvent with span_id and timestamp", async () => {
+    const session = await storage.createSession({ working_dir: "/tmp" })
+    const span = await storage.createSpan({ session_id: session.id, kind: "agent", name: "test" })
+    const event = await storage.createEvent({
+      session_id: session.id,
+      span_id: span.id,
+      type: "log.info",
+      data: { message: "hello" },
+      timestamp: 12345,
+    })
+    expect(event.span_id).toBe(span.id)
+    expect(event.timestamp).toBe(12345)
+    const events = await storage.listEvents(session.id)
+    expect(events.length).toBe(1)
+    expect(events[0].span_id).toBe(span.id)
+    expect(events[0].timestamp).toBe(12345)
+  })
+
+  test("listEvents with span_id filter", async () => {
+    const session = await storage.createSession({ working_dir: "/tmp" })
+    const span = await storage.createSpan({ session_id: session.id, kind: "agent", name: "test" })
+    await storage.createEvent({ session_id: session.id, type: "log.info", data: {} })
+    await storage.createEvent({ session_id: session.id, span_id: span.id, type: "log.warn", data: {} })
+    const events = await storage.listEvents(session.id, { span_id: span.id })
+    expect(events.length).toBe(1)
+    expect(events[0].type).toBe("log.warn")
   })
 
   test("addContextItem and listContextItems", async () => {
@@ -94,5 +184,30 @@ describe("SQLiteStorage", () => {
     const items = await storage.listContextItems(session.id, { type: "goal" })
     expect(items.length).toBe(1)
     expect(items[0].type).toBe("goal")
+  })
+
+  test("listContextItems filter by label", async () => {
+    const session = await storage.createSession({ working_dir: "/tmp" })
+    await storage.addContextItem({ session_id: session.id, type: "goal", label: "alpha", value: { text: "x" } })
+    await storage.addContextItem({ session_id: session.id, type: "goal", label: "beta", value: { text: "y" } })
+    const items = await storage.listContextItems(session.id, { label: "alpha" })
+    expect(items.length).toBe(1)
+    expect(items[0].label).toBe("alpha")
+  })
+
+  test("listContextItems filter by empty label string", async () => {
+    const session = await storage.createSession({ working_dir: "/tmp" })
+    await storage.addContextItem({ session_id: session.id, type: "goal", label: "", value: { text: "x" } })
+    await storage.addContextItem({ session_id: session.id, type: "goal", label: "beta", value: { text: "y" } })
+    const items = await storage.listContextItems(session.id, { label: "" })
+    expect(items.length).toBe(1)
+    expect(items[0].label).toBe("")
+  })
+
+  test("listEvents filter by empty type string", async () => {
+    const session = await storage.createSession({ working_dir: "/tmp" })
+    await storage.createEvent({ session_id: session.id, type: "log.info", data: {} })
+    const events = await storage.listEvents(session.id, { type: undefined })
+    expect(events.length).toBe(1)
   })
 })

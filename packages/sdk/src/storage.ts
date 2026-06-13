@@ -27,4 +27,6 @@ export interface Storage {
 
   addContextItem(data: AddContextItemInput): Promise<ContextItem>
   listContextItems(sessionId: string, filter?: ContextFilter): Promise<ContextItem[]>
+
+  close(): void
 }

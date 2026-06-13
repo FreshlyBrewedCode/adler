@@ -90,12 +90,22 @@ export class SQLiteStorage implements Storage {
   getSession(id: string): Promise<Session | null> {
     const row = this.db.query("SELECT * FROM sessions WHERE id = ?").get(id) as Record<string, unknown> | null
     if (!row) return Promise.resolve(null)
-    return Promise.resolve(row as Session)
+    return Promise.resolve({
+      id: row.id as string,
+      status: row.status as Session["status"],
+      working_dir: row.working_dir as string,
+      created_at: row.created_at as number,
+    })
   }
 
   listSessions(): Promise<Session[]> {
     const rows = this.db.query("SELECT * FROM sessions ORDER BY created_at DESC").all() as Record<string, unknown>[]
-    return Promise.resolve(rows as Session[])
+    return Promise.resolve(rows.map(r => ({
+      id: r.id as string,
+      status: r.status as Session["status"],
+      working_dir: r.working_dir as string,
+      created_at: r.created_at as number,
+    })))
   }
 
   updateSession(id: string, data: Partial<Session>): Promise<void> {
@@ -149,17 +159,31 @@ export class SQLiteStorage implements Storage {
     const row = this.db.query("SELECT * FROM spans WHERE id = ?").get(id) as Record<string, unknown> | null
     if (!row) return Promise.resolve(null)
     return Promise.resolve({
-      ...row,
+      id: row.id as string,
+      session_id: row.session_id as string,
+      parent_id: row.parent_id as string | null,
+      kind: row.kind as Span["kind"],
+      name: row.name as string,
+      status: row.status as Span["status"],
+      started_at: row.started_at as number,
+      finished_at: row.finished_at as number | null,
       data: JSON.parse((row.data as string) ?? "{}"),
-    } as Span)
+    })
   }
 
   listSpans(sessionId: string): Promise<Span[]> {
     const rows = this.db.query("SELECT * FROM spans WHERE session_id = ? ORDER BY started_at ASC").all(sessionId) as Record<string, unknown>[]
     return Promise.resolve(rows.map(r => ({
-      ...r,
+      id: r.id as string,
+      session_id: r.session_id as string,
+      parent_id: r.parent_id as string | null,
+      kind: r.kind as Span["kind"],
+      name: r.name as string,
+      status: r.status as Span["status"],
+      started_at: r.started_at as number,
+      finished_at: r.finished_at as number | null,
       data: JSON.parse((r.data as string) ?? "{}"),
-    })) as Span[])
+    })))
   }
 
   createEvent(data: CreateEventInput): Promise<Event> {
@@ -182,14 +206,18 @@ export class SQLiteStorage implements Storage {
   listEvents(sessionId: string, filter?: EventFilter): Promise<Event[]> {
     const conditions = ["session_id = ?"]
     const values: unknown[] = [sessionId]
-    if (filter?.type) { conditions.push("type = ?"); values.push(filter.type) }
-    if (filter?.span_id) { conditions.push("span_id = ?"); values.push(filter.span_id) }
+    if (filter?.type !== undefined) { conditions.push("type = ?"); values.push(filter.type) }
+    if (filter?.span_id !== undefined) { conditions.push("span_id = ?"); values.push(filter.span_id) }
     const sql = `SELECT * FROM events WHERE ${conditions.join(" AND ")} ORDER BY timestamp DESC`
     const rows = this.db.query(sql).all(...values) as Record<string, unknown>[]
     return Promise.resolve(rows.map(r => ({
-      ...r,
+      id: r.id as number,
+      session_id: r.session_id as string,
+      span_id: r.span_id as string | null,
+      type: r.type as Event["type"],
       data: JSON.parse((r.data as string) ?? "{}"),
-    })) as Event[])
+      timestamp: r.timestamp as number,
+    })))
   }
 
   addContextItem(data: AddContextItemInput): Promise<ContextItem> {
@@ -214,14 +242,19 @@ export class SQLiteStorage implements Storage {
   listContextItems(sessionId: string, filter?: ContextFilter): Promise<ContextItem[]> {
     const conditions = ["session_id = ?"]
     const values: unknown[] = [sessionId]
-    if (filter?.type) { conditions.push("type = ?"); values.push(filter.type) }
-    if (filter?.label) { conditions.push("label = ?"); values.push(filter.label) }
+    if (filter?.type !== undefined) { conditions.push("type = ?"); values.push(filter.type) }
+    if (filter?.label !== undefined) { conditions.push("label = ?"); values.push(filter.label) }
     const sql = `SELECT * FROM context_items WHERE ${conditions.join(" AND ")} ORDER BY created_at DESC`
     const rows = this.db.query(sql).all(...values) as Record<string, unknown>[]
     return Promise.resolve(rows.map(r => ({
-      ...r,
+      id: r.id as string,
+      session_id: r.session_id as string,
+      type: r.type as ContextItem["type"],
+      label: r.label as string | null,
+      description: r.description as string | null,
       value: JSON.parse((r.value as string) ?? "{}"),
-    })) as ContextItem[])
+      created_at: r.created_at as number,
+    })))
   }
 
   close(): void {
