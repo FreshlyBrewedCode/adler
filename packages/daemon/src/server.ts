@@ -14,7 +14,9 @@ export function startServer(storage: Storage, getProcessManager: () => ProcessMa
     if (set) {
       const data = JSON.stringify({ type: "event", event: event.type, payload: event.payload }) + "\n"
       for (const client of set) {
-        try { client.write(data) } catch {}
+        try { client.write(data) } catch (e) {
+          console.error("Failed to broadcast to client:", e instanceof Error ? e.message : String(e))
+        }
       }
     }
   }
@@ -35,6 +37,7 @@ export function startServer(storage: Storage, getProcessManager: () => ProcessMa
     let subscriberEntry: { write: (data: string) => void } | null = null
     let rawMode = false
     let attachedSpanId: string | null = null
+    let attachCleanup: (() => void) | null = null
 
     socket.on("data", async (data) => {
       if (rawMode && attachedSpanId) {
@@ -69,13 +72,13 @@ export function startServer(storage: Storage, getProcessManager: () => ProcessMa
 
             if (msg.type === "agent.attach") {
               const { span_id } = msg.payload as { span_id: string }
-              const cleanup = getProcessManager().addAttachListener(span_id, (data) => {
+              // Clean up previous attach if any
+              if (attachCleanup) {
+                attachCleanup()
+                attachCleanup = null
+              }
+              attachCleanup = getProcessManager().addAttachListener(span_id, (data) => {
                 socket.write(data)
-              })
-              socket.on("close", () => {
-                cleanup()
-                rawMode = false
-                attachedSpanId = null
               })
               rawMode = true
               attachedSpanId = span_id
@@ -107,6 +110,10 @@ export function startServer(storage: Storage, getProcessManager: () => ProcessMa
         if (set) {
           set.delete(subscriberEntry)
         }
+      }
+      if (attachCleanup) {
+        attachCleanup()
+        attachCleanup = null
       }
     })
   })

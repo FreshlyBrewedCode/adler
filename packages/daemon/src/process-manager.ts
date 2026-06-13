@@ -62,7 +62,7 @@ export class ProcessManager {
       ADLER_CONTEXT: JSON.stringify(contextItems),
     }
 
-    const pty = spawnPty(runCmd, [], {
+    const pty = spawnPty("sh", ["-c", runCmd], {
       env,
       cwd: process.cwd(),
     })
@@ -135,7 +135,8 @@ export class ProcessManager {
     const span = await this.storage.getSpan(spanId)
     if (!span) return
 
-    const timeout = this.config.agent?.agents?.[span.data.agent_type as string]?.interactiveTimeout ?? 3000
+    const agentDef = this.config.agent?.agents?.[span.data.agent_type as string]
+    const timeout = agentDef?.interactiveTimeout ?? 3000
     agent.stdoutIdle = Date.now() - agent.lastStdoutTime > timeout
 
     const result = await statusHook({
@@ -175,7 +176,7 @@ export class ProcessManager {
         })
         outputData = output as Record<string, unknown>
       } catch (e) {
-        // output hook failure is non-fatal
+        console.error("Agent output hook failed:", e instanceof Error ? e.message : String(e))
       }
     }
 
@@ -195,6 +196,8 @@ export class ProcessManager {
     })
 
     agent.status = status
+    this.agents.delete(spanId)
+    this.attachListeners.delete(spanId)
     this.inactivity?.removeAgent()
     this.onEvent({
       type: status === "done" ? "span.finished" : "span.failed",
@@ -229,9 +232,10 @@ export class ProcessManager {
       }
     }
     this.statusIntervals.clear()
-    for (const _ of this.agents.keys()) {
+    for (const spanId of this.agents.keys()) {
+      this.agents.delete(spanId)
+      this.attachListeners.delete(spanId)
       this.inactivity?.removeAgent()
     }
-    this.agents.clear()
   }
 }

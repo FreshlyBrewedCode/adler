@@ -23,7 +23,8 @@ async function main() {
   const server = startServer(storage, () => processManager, inactivity)
 
   processManager = new ProcessManager(storage, config, (event) => {
-    const sessionId = (event.payload as any)?.session_id
+    const payload = event.payload as Record<string, unknown> | undefined
+    const sessionId = payload?.session_id as string | undefined
     if (sessionId) {
       server.broadcast(sessionId, event)
     }

@@ -1,4 +1,4 @@
-import type { Storage } from "@adler/sdk"
+import type { Storage, SessionStatus, ContextItemType } from "@adler/sdk"
 import type { ProcessManager } from "./process-manager"
 
 export interface HandlerContext {
@@ -12,9 +12,12 @@ export async function handleCommand(ctx: HandlerContext, type: string, payload: 
   switch (type) {
     case "session.create": {
       const data = payload as { working_dir?: string; status?: string }
+      const status = (["active", "completed", "archived"] as SessionStatus[]).includes(data.status as SessionStatus)
+        ? (data.status as SessionStatus)
+        : undefined
       const session = await ctx.storage.createSession({
         working_dir: data.working_dir ?? process.cwd(),
-        status: data.status as any,
+        status,
       })
       ctx.broadcast(session.id, { type: "session.created", payload: { session_id: session.id } })
       return session
@@ -52,11 +55,16 @@ export async function handleCommand(ctx: HandlerContext, type: string, payload: 
       const spans = await ctx.storage.listAllSpans()
       const span = spans.find(s => s.name === name)
       if (!span) throw new Error(`Agent not found: ${name}`)
+      const maxWaitMs = 5 * 60 * 1000 // 5 minutes
+      const start = Date.now()
       while (true) {
         const current = await ctx.storage.getSpan(span.id)
         if (!current) throw new Error("Span disappeared")
         if (current.status === "done" || current.status === "failed" || current.status === "blocked") {
           return current
+        }
+        if (Date.now() - start > maxWaitMs) {
+          throw new Error(`Agent ${name} did not complete within 5 minutes`)
         }
         await new Promise(r => setTimeout(r, 500))
       }
@@ -92,9 +100,11 @@ export async function handleCommand(ctx: HandlerContext, type: string, payload: 
 
     case "context.add": {
       const data = payload as { session_id: string; type: string; label?: string; description?: string; value: Record<string, unknown> }
+      const validTypes = ["goal", "url", "file", "text"] as ContextItemType[]
+      const type = validTypes.includes(data.type as ContextItemType) ? (data.type as ContextItemType) : "text"
       const item = await ctx.storage.addContextItem({
         session_id: data.session_id,
-        type: data.type as any,
+        type,
         label: data.label ?? null,
         description: data.description ?? null,
         value: data.value,
