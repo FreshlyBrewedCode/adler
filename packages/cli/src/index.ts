@@ -1,9 +1,12 @@
-import { ensureDaemon } from "./auto-start"
-import { parseFlags } from "./parse-flags"
+#!/usr/bin/env bun
+import { runCli } from "./cli"
 
-async function main(argv: string[] = process.argv.slice(2)) {
-  if (argv.length === 0) {
+async function main() {
+  const args = process.argv.slice(2)
+
+  if (args.length === 0) {
     // Launch TUI
+    const { ensureDaemon } = await import("./auto-start")
     await ensureDaemon()
     try {
       const { runTui } = await import("@adler/tui")
@@ -15,48 +18,7 @@ async function main(argv: string[] = process.argv.slice(2)) {
     return
   }
 
-  const command = argv[0]
-  const subcommand = argv[1]
-  const rest = argv.slice(2)
-
-  switch (command) {
-    case "new": {
-      const { run } = await import("./commands/new")
-      const flags = parseFlags(argv.slice(1))
-      await run({ goal: flags.goal })
-      break
-    }
-    case "agent": {
-      const { run } = await import("./commands/agent")
-      await run(rest, subcommand)
-      break
-    }
-    case "context": {
-      const { run } = await import("./commands/context")
-      await run(rest, subcommand)
-      break
-    }
-    case "session": {
-      const { run } = await import("./commands/session")
-      await run(subcommand)
-      break
-    }
-    case "init": {
-      const { run } = await import("./commands/init")
-      await run()
-      break
-    }
-    case "daemon": {
-      const { run } = await import("./commands/daemon")
-      await run(subcommand)
-      break
-    }
-    default:
-      console.error(`Unknown command: ${command}`)
-      process.exit(1)
-  }
-
-  process.exit(0)
+  await runCli(process.argv)
 }
 
 main().catch((err) => {
