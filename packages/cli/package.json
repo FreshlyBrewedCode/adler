@@ -12,6 +12,7 @@
   "dependencies": {
     "@adler/sdk": "workspace:*",
     "@adler/tui": "workspace:*",
-    "adlerd": "workspace:*"
+    "adlerd": "workspace:*",
+    "commander": "^13.0.0"
   }
 }
