@@ -1,5 +1,7 @@
 import { test, expect, describe, beforeEach, afterEach } from "bun:test"
 import { resolveSessionId } from "../src/resolve-session"
+import { buildCli } from "../src/cli"
+import { AdlerCliError } from "../src/error"
 import { mkdirSync, writeFileSync, unlinkSync, rmdirSync } from "node:fs"
 import { join } from "node:path"
 
@@ -48,5 +50,53 @@ describe("CLI", () => {
   test("resolveSessionId returns undefined when nothing set", () => {
     const id = resolveSessionId({})
     expect(id).toBeUndefined()
+  })
+
+  test("AdlerCliError has correct name and message", () => {
+    const err = new AdlerCliError("test message")
+    expect(err.name).toBe("AdlerCliError")
+    expect(err.message).toBe("test message")
+  })
+
+  test("CLI shows help for unknown command", async () => {
+    const cli = buildCli()
+    cli.exitOverride()
+    let output = ""
+    cli.configureOutput({
+      writeErr: (str) => {
+        output += str
+      },
+    })
+    await expect(
+      cli.parseAsync(["node", "adler", "unknown"])
+    ).rejects.toThrow()
+    expect(output).toContain("error: unknown command")
+  })
+
+  test("CLI shows help for agent command", async () => {
+    const cli = buildCli()
+    cli.exitOverride()
+    let output = ""
+    const capture = (str: string) => {
+      output += str
+    }
+    cli.configureOutput({
+      writeOut: capture,
+      writeErr: capture,
+    })
+    cli.commands.forEach((cmd) => {
+      cmd.exitOverride()
+      cmd.configureOutput({ writeOut: capture, writeErr: capture })
+      cmd.commands.forEach((sub) => {
+        sub.exitOverride()
+        sub.configureOutput({ writeOut: capture, writeErr: capture })
+      })
+    })
+    await expect(
+      cli.parseAsync(["node", "adler", "agent", "--help"])
+    ).rejects.toThrow()
+    expect(output).toContain("Usage:")
+    expect(output).toContain("run")
+    expect(output).toContain("list")
   })
 })
