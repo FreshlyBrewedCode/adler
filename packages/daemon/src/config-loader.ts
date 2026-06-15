@@ -1,34 +1,91 @@
-import { existsSync } from "fs"
+import { existsSync, watch, type FSWatcher } from "fs"
 import { join } from "path"
 import { homedir } from "os"
 import type { AdlerConfig } from "@adler/sdk"
 
 const GLOBAL_CONFIG = join(homedir(), ".config/adler/adler.ts")
-const PROJECT_CONFIG = join(process.cwd(), ".adler/adler.ts")
 
-export async function loadConfig(): Promise<AdlerConfig> {
-  let globalConfig: AdlerConfig = {}
-  let projectConfig: AdlerConfig = {}
+export class ConfigLoader {
+  private cache = new Map<string, AdlerConfig>()
+  private watchers = new Map<string, FSWatcher>()
 
-  if (existsSync(GLOBAL_CONFIG)) {
-    try {
-      const mod = await import(GLOBAL_CONFIG)
-      globalConfig = mod.default ?? {}
-    } catch (e) {
-      console.error(`Failed to load global config ${GLOBAL_CONFIG}:`, e instanceof Error ? e.message : String(e))
+  async loadConfig(dir: string): Promise<AdlerConfig> {
+    const absDir = join(dir) // normalize
+    const cached = this.cache.get(absDir)
+    if (cached) {
+      return cached
+    }
+
+    const config = await this.resolveConfig(absDir)
+    this.cache.set(absDir, config)
+    this.watchConfig(absDir)
+    return config
+  }
+
+  private async resolveConfig(dir: string): Promise<AdlerConfig> {
+    let globalConfig: AdlerConfig = {}
+    let projectConfig: AdlerConfig = {}
+
+    if (existsSync(GLOBAL_CONFIG)) {
+      try {
+        const mod = await import(GLOBAL_CONFIG)
+        globalConfig = mod.default ?? {}
+      } catch (e) {
+        console.error(`Failed to load global config ${GLOBAL_CONFIG}:`, e instanceof Error ? e.message : String(e))
+      }
+    }
+
+    const projectConfigPath = join(dir, ".adler/adler.ts")
+    if (existsSync(projectConfigPath)) {
+      try {
+        const mod = await import(projectConfigPath)
+        projectConfig = mod.default ?? {}
+      } catch (e) {
+        console.error(`Failed to load project config ${projectConfigPath}:`, e instanceof Error ? e.message : String(e))
+      }
+    }
+
+    return mergeConfig(globalConfig, projectConfig)
+  }
+
+  private watchConfig(dir: string): void {
+    if (this.watchers.has(dir)) return
+
+    const files = [GLOBAL_CONFIG, join(dir, ".adler/adler.ts")].filter(existsSync)
+    if (files.length === 0) return
+
+    const fileWatchers = files.map((file) =>
+      watch(file, (eventType, filename) => {
+        this.invalidate(dir)
+      })
+    )
+
+    const watcher = {
+      close: () => {
+        fileWatchers.forEach((w) => w.close())
+      },
+    } as FSWatcher
+
+    this.watchers.set(dir, watcher)
+  }
+
+  invalidate(dir: string): void {
+    const absDir = join(dir)
+    this.cache.delete(absDir)
+    const watcher = this.watchers.get(absDir)
+    if (watcher) {
+      watcher.close()
+      this.watchers.delete(absDir)
     }
   }
 
-  if (existsSync(PROJECT_CONFIG)) {
-    try {
-      const mod = await import(PROJECT_CONFIG)
-      projectConfig = mod.default ?? {}
-    } catch (e) {
-      console.error(`Failed to load project config ${PROJECT_CONFIG}:`, e instanceof Error ? e.message : String(e))
+  close(): void {
+    for (const watcher of this.watchers.values()) {
+      watcher.close()
     }
+    this.watchers.clear()
+    this.cache.clear()
   }
-
-  return mergeConfig(globalConfig, projectConfig)
 }
 
 function mergeConfig(base: AdlerConfig, override: AdlerConfig): AdlerConfig {
