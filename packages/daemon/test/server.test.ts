@@ -3,6 +3,7 @@ import { connect } from "net"
 import { SQLiteStorage } from "@adler/sdk"
 import { startServer } from "../src/server"
 import { ProcessManager } from "../src/process-manager"
+import { ConfigLoader } from "../src/config-loader"
 import { unlinkSync, existsSync, mkdirSync } from "fs"
 import { dirname } from "path"
 import { SOCKET_PATH } from "@adler/sdk"
@@ -19,7 +20,7 @@ describe("Daemon server", () => {
     const socketDir = dirname(SOCKET_PATH)
     if (!existsSync(socketDir)) mkdirSync(socketDir, { recursive: true })
     storage = new SQLiteStorage(":memory:")
-    pm = new ProcessManager(storage, {}, () => {})
+    pm = new ProcessManager(storage, new ConfigLoader(), () => {})
     inactivity = new InactivityTimer(() => {})
     server = startServer(storage, () => pm, inactivity)
     // Wait for socket to be ready

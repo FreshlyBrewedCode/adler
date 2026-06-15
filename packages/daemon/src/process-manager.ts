@@ -1,7 +1,8 @@
 import { spawn as spawnPty } from "node-pty"
-import type { Storage, Span, SpanStatus, AdlerConfig } from "@adler/sdk"
+import type { Storage, Span, SpanStatus, AdlerConfig, AgentConfig } from "@adler/sdk"
 import { SOCKET_PATH } from "@adler/sdk"
 import type { InactivityTimer } from "./lifecycle"
+import type { ConfigLoader } from "./config-loader"
 
 export interface AgentProcess {
   spanId: string
@@ -21,7 +22,7 @@ export class ProcessManager {
 
   constructor(
     private storage: Storage,
-    private config: AdlerConfig,
+    private configLoader: ConfigLoader,
     private onEvent: (event: { type: string; payload: unknown }) => void,
     private inactivity?: InactivityTimer,
   ) {}
@@ -33,7 +34,13 @@ export class ProcessManager {
     name: string
     parentSpanId?: string | null
   }): Promise<Span> {
-    const agentDef = this.config.agent?.agents?.[data.agentType]
+    const session = await this.storage.getSession(data.sessionId)
+    if (!session) {
+      throw new Error(`Session not found: ${data.sessionId}`)
+    }
+
+    const config = await this.configLoader.loadConfig(session.working_dir)
+    const agentDef = config.agent?.agents?.[data.agentType]
     if (!agentDef) {
       throw new Error(`Unknown agent type: ${data.agentType}`)
     }
@@ -128,14 +135,18 @@ export class ProcessManager {
     return span
   }
 
-  private async pollStatus(spanId: string, statusHook: NonNullable<AdlerConfig["agent"]["agents"][string]["status"]>) {
+  private async pollStatus(spanId: string, statusHook: NonNullable<AgentConfig["status"]>) {
     const agent = this.agents.get(spanId)
     if (!agent || agent.exited) return
 
     const span = await this.storage.getSpan(spanId)
     if (!span) return
 
-    const agentDef = this.config.agent?.agents?.[span.data.agent_type as string]
+    const session = await this.storage.getSession(span.session_id)
+    if (!session) return
+
+    const config = await this.configLoader.loadConfig(session.working_dir)
+    const agentDef = config.agent?.agents?.[span.data.agent_type as string]
     const timeout = agentDef?.interactiveTimeout ?? 3000
     agent.stdoutIdle = Date.now() - agent.lastStdoutTime > timeout
 
@@ -147,7 +158,7 @@ export class ProcessManager {
     })
 
     if (result === "completed" || result === "failed" || result === "blocked") {
-      await this.completeAgent(spanId, result === "completed" ? 0 : result === "failed" ? 1 : 0, result)
+      await this.completeAgent(spanId, result === "completed" ? 0 : result === "failed" ? 1 : 0, result as SpanStatus)
     }
   }
 
@@ -164,7 +175,11 @@ export class ProcessManager {
     const span = await this.storage.getSpan(spanId)
     if (!span) return
 
-    const agentDef = this.config.agent?.agents?.[span.data.agent_type as string]
+    const session = await this.storage.getSession(span.session_id)
+    if (!session) return
+
+    const config = await this.configLoader.loadConfig(session.working_dir)
+    const agentDef = config.agent?.agents?.[span.data.agent_type as string]
     let outputData: Record<string, unknown> | null = null
 
     if (agentDef?.output) {
