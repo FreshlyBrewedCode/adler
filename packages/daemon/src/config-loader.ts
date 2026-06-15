@@ -1,5 +1,5 @@
 import { existsSync, watch, type FSWatcher } from "fs"
-import { join } from "path"
+import { join, resolve } from "path"
 import { homedir } from "os"
 import type { AdlerConfig } from "@adler/sdk"
 
@@ -10,7 +10,7 @@ export class ConfigLoader {
   private watchers = new Map<string, FSWatcher>()
 
   async loadConfig(dir: string): Promise<AdlerConfig> {
-    const absDir = join(dir) // normalize
+    const absDir = resolve(dir)
     const cached = this.cache.get(absDir)
     if (cached) {
       return cached
@@ -49,14 +49,15 @@ export class ConfigLoader {
   }
 
   private watchConfig(dir: string): void {
-    if (this.watchers.has(dir)) return
+    const absDir = resolve(dir)
+    if (this.watchers.has(absDir)) return
 
     const files = [GLOBAL_CONFIG, join(dir, ".adler/adler.ts")].filter(existsSync)
     if (files.length === 0) return
 
     const fileWatchers = files.map((file) =>
       watch(file, (eventType, filename) => {
-        this.invalidate(dir)
+        this.invalidate(absDir)
       })
     )
 
@@ -66,11 +67,11 @@ export class ConfigLoader {
       },
     } as FSWatcher
 
-    this.watchers.set(dir, watcher)
+    this.watchers.set(absDir, watcher)
   }
 
   invalidate(dir: string): void {
-    const absDir = join(dir)
+    const absDir = resolve(dir)
     this.cache.delete(absDir)
     const watcher = this.watchers.get(absDir)
     if (watcher) {
