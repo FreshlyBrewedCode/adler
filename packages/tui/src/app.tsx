@@ -1,6 +1,6 @@
 import { useEffect, useReducer } from "react"
 import { Box, useInput, useApp } from "ink"
-import { createClient, type EventType } from "@adler/sdk"
+import { createClient, type EventType, DAEMON_SESSION_ID } from "@adler/sdk"
 import { initialState, reducer } from "./types"
 import { Header } from "./components/Header"
 import { Footer } from "./components/Footer"
@@ -15,6 +15,7 @@ export function App({ sessionId }: { sessionId: string }) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const { exit } = useApp()
 
+  // Subscribe to session events
   useEffect(() => {
     const client = createClient()
     let cleanup: (() => void) | undefined
@@ -59,6 +60,43 @@ export function App({ sessionId }: { sessionId: string }) {
       client.close()
     }
   }, [sessionId])
+
+  // Subscribe to daemon events
+  useEffect(() => {
+    const client = createClient()
+    let cleanup: (() => void) | undefined
+
+    ;(async () => {
+      try {
+        const unsub = await client.subscribe(DAEMON_SESSION_ID, (msg) => {
+          if (msg.type === "snapshot") {
+            const snapshot = msg.payload as { session: any; spans: any[]; events: any[]; context: any[] }
+            dispatch({ type: "daemonSnapshot", payload: snapshot.events ?? [] })
+          } else if (msg.type === "event") {
+            dispatch({
+              type: "daemonEvent",
+              payload: {
+                id: Date.now(),
+                session_id: DAEMON_SESSION_ID,
+                span_id: null,
+                type: msg.event as EventType,
+                data: msg.payload as any,
+                timestamp: Date.now(),
+              },
+            })
+          }
+        })
+        cleanup = unsub
+      } catch {
+        // Daemon events are best-effort; silently ignore connection errors
+      }
+    })()
+
+    return () => {
+      cleanup?.()
+      client.close()
+    }
+  }, [])
 
   useInput((input, key) => {
     if (state.isHelpOpen) {
@@ -114,7 +152,9 @@ export function App({ sessionId }: { sessionId: string }) {
       }
     } else if (state.activeTab === 4) {
       // Logs tab
-      if (input === "i") {
+      if (input === "d") {
+        dispatch({ type: "toggleLogsView" })
+      } else if (input === "i") {
         dispatch({ type: "setLogsFilter", filter: "info" })
       } else if (input === "w") {
         dispatch({ type: "setLogsFilter", filter: "warn" })
@@ -129,6 +169,8 @@ export function App({ sessionId }: { sessionId: string }) {
       }
     }
   })
+
+  const logsEvents = state.logsView === "daemon" ? state.daemonEvents : state.events
 
   return (
     <Box flexDirection="column" height="100%">
@@ -147,7 +189,12 @@ export function App({ sessionId }: { sessionId: string }) {
           <TracesTab spans={state.spans} selectedIndex={state.tracesSelectedIndex} />
         )}
         {state.activeTab === 4 && (
-          <LogsTab events={state.events} selectedIndex={state.logsSelectedIndex} filter={state.logsFilter} />
+          <LogsTab
+            events={logsEvents}
+            selectedIndex={state.logsSelectedIndex}
+            filter={state.logsFilter}
+            logsView={state.logsView}
+          />
         )}
       </Box>
       {state.isHelpOpen && <HotkeyDialog />}

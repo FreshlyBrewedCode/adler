@@ -19,10 +19,12 @@ export function LogsTab({
   events,
   selectedIndex,
   filter,
+  logsView,
 }: {
   events: Event[]
   selectedIndex: number
   filter: "all" | "info" | "warn" | "error"
+  logsView: "session" | "daemon"
 }) {
   const filtered = events.filter(e => {
     if (filter === "all") return true
@@ -34,6 +36,13 @@ export function LogsTab({
 
   return (
     <Box flexDirection="column">
+      <Box marginBottom={1}>
+        <Text bold>View: </Text>
+        <Text color={logsView === "session" ? "cyan" : "magenta"}>
+          {logsView === "session" ? "[Session]" : "[Daemon]"}
+        </Text>
+        <Text dimColor>  d=toggle  i/w/e=filter  f=autoscroll</Text>
+      </Box>
       {display.map((event, i) => {
         const isSelected = i === safeIndex
         const level = levelFromType(event.type)
