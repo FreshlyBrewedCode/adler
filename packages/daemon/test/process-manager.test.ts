@@ -16,6 +16,7 @@ describe("ProcessManager", () => {
   let storage: SQLiteStorage
   let loader: ConfigLoader
   let testDir: string
+  let pm: ProcessManager
 
   beforeEach(() => {
     storage = new SQLiteStorage(":memory:")
@@ -24,6 +25,7 @@ describe("ProcessManager", () => {
   })
 
   afterEach(() => {
+    pm?.stop()
     loader.close()
     storage.close()
     if (existsSync(testDir)) {
@@ -40,7 +42,7 @@ describe("ProcessManager", () => {
       "utf-8"
     )
 
-    const pm = new ProcessManager(storage, loader, () => {})
+    pm = new ProcessManager(storage, loader, () => {})
     const session = await storage.createSession({ working_dir: testDir })
 
     try {
@@ -58,7 +60,7 @@ describe("ProcessManager", () => {
   })
 
   test("rejects unknown agent type from session directory", async () => {
-    const pm = new ProcessManager(storage, loader, () => {})
+    pm = new ProcessManager(storage, loader, () => {})
     const session = await storage.createSession({ working_dir: testDir })
 
     expect(

@@ -29,6 +29,7 @@ describe("Daemon server", () => {
 
   afterEach(() => {
     server.close()
+    pm.stop()
     inactivity.stop()
     storage.close()
     if (existsSync(SOCKET_PATH)) unlinkSync(SOCKET_PATH)

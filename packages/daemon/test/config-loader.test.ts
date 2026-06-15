@@ -79,6 +79,8 @@ describe("ConfigLoader", () => {
       "utf-8"
     )
 
+    // Wait for file system to sync the write
+    await new Promise(r => setTimeout(r, 50))
     const config2 = await loader.loadConfig(testDir)
     expect(config2.agent?.agents?.test).toEqual({ interactive: false })
   })
