@@ -2,6 +2,7 @@ import { SQLiteStorage, DB_PATH } from "@adler/sdk"
 import { startServer } from "./server"
 import { ProcessManager } from "./process-manager"
 import { ConfigLoader } from "./config-loader"
+import { createLogger } from "./logger"
 import { writePid, removePid, removeSocket, isDaemonRunning, InactivityTimer, ensureAdlerDir } from "./lifecycle"
 
 async function main() {
@@ -13,16 +14,17 @@ async function main() {
   ensureAdlerDir()
 
   const storage = new SQLiteStorage(DB_PATH)
-  const configLoader = new ConfigLoader()
+  const logger = createLogger(storage)
+  const configLoader = new ConfigLoader(logger)
 
   const inactivity = new InactivityTimer(() => {
-    console.log("Shutting down due to inactivity")
+    logger.info("Shutting down due to inactivity")
     shutdown()
   })
 
   let processManager: ProcessManager
 
-  const server = startServer(storage, () => processManager, inactivity)
+  const server = startServer(storage, () => processManager, inactivity, logger)
 
   processManager = new ProcessManager(storage, configLoader, (event) => {
     const payload = event.payload as Record<string, unknown> | undefined
@@ -30,7 +32,7 @@ async function main() {
     if (sessionId) {
       server.broadcast(sessionId, event)
     }
-  }, inactivity)
+  }, inactivity, logger)
 
   writePid()
 
@@ -48,10 +50,10 @@ async function main() {
   process.on("SIGTERM", shutdown)
   process.on("SIGINT", shutdown)
 
-  console.log("adlerd started")
+  await logger.info("adlerd started")
 }
 
-main().catch((err) => {
+main().catch(async (err) => {
   console.error(err)
   process.exit(1)
 })
