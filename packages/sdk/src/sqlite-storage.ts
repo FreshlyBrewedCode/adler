@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite"
 import type { Storage } from "./storage"
+import { DAEMON_SESSION_ID } from "./constants"
 import type {
   Session,
   SessionStatus,
@@ -90,6 +91,13 @@ export class SQLiteStorage implements Storage {
       [session.id, session.status, session.working_dir, session.created_at]
     )
     return Promise.resolve(session)
+  }
+
+  upsertDaemonSession(): void {
+    this.db.run(
+      `INSERT OR IGNORE INTO sessions (id, status, working_dir, created_at) VALUES (?, ?, ?, ?)`,
+      [DAEMON_SESSION_ID, "active", "/", Date.now()]
+    )
   }
 
   getSession(id: string): Promise<Session | null> {
