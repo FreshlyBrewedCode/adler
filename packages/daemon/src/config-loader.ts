@@ -28,7 +28,7 @@ export class ConfigLoader {
 
     if (existsSync(GLOBAL_CONFIG)) {
       try {
-        const mod = await import(GLOBAL_CONFIG)
+        const mod = await import(`${GLOBAL_CONFIG}?t=${Date.now()}`)
         globalConfig = mod.default ?? {}
       } catch (e) {
         console.error(`Failed to load global config ${GLOBAL_CONFIG}:`, e instanceof Error ? e.message : String(e))
@@ -38,7 +38,7 @@ export class ConfigLoader {
     const projectConfigPath = join(dir, ".adler/adler.ts")
     if (existsSync(projectConfigPath)) {
       try {
-        const mod = await import(projectConfigPath)
+        const mod = await import(`${projectConfigPath}?t=${Date.now()}`)
         projectConfig = mod.default ?? {}
       } catch (e) {
         console.error(`Failed to load project config ${projectConfigPath}:`, e instanceof Error ? e.message : String(e))

@@ -1,7 +1,7 @@
 import { SQLiteStorage, DB_PATH } from "@adler/sdk"
 import { startServer } from "./server"
 import { ProcessManager } from "./process-manager"
-import { loadConfig } from "./config-loader"
+import { ConfigLoader } from "./config-loader"
 import { writePid, removePid, removeSocket, isDaemonRunning, InactivityTimer } from "./lifecycle"
 
 async function main() {
@@ -11,7 +11,8 @@ async function main() {
   }
 
   const storage = new SQLiteStorage(DB_PATH)
-  const config = await loadConfig()
+  const configLoader = new ConfigLoader()
+  const config = await configLoader.loadConfig(process.cwd())
 
   const inactivity = new InactivityTimer(() => {
     console.log("Shutting down due to inactivity")
@@ -37,6 +38,7 @@ async function main() {
     processManager.stop()
     inactivity.stop()
     storage.close()
+    configLoader.close()
     removePid()
     removeSocket()
     process.exit(0)
