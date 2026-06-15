@@ -98,6 +98,8 @@ export function App({ sessionId }: { sessionId: string }) {
     }
   }, [])
 
+  const logsEvents = state.logsView === "daemon" ? state.daemonEvents : state.events
+
   useInput((input, key) => {
     if (state.isHelpOpen) {
       if (input === "?" || key.escape) {
@@ -165,12 +167,10 @@ export function App({ sessionId }: { sessionId: string }) {
       } else if (key.upArrow) {
         dispatch({ type: "selectLog", index: Math.max(0, state.logsSelectedIndex - 1) })
       } else if (key.downArrow) {
-        dispatch({ type: "selectLog", index: Math.min(state.events.length - 1, state.logsSelectedIndex + 1) })
+        dispatch({ type: "selectLog", index: Math.min(logsEvents.length - 1, state.logsSelectedIndex + 1) })
       }
     }
   })
-
-  const logsEvents = state.logsView === "daemon" ? state.daemonEvents : state.events
 
   return (
     <Box flexDirection="column" height="100%">
