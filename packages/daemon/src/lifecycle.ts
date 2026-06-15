@@ -49,7 +49,7 @@ export class InactivityTimer {
   private clientCount: number = 0
   private runningAgents: number = 0
 
-  constructor(private onShutdown: () => void) {}
+  constructor(private onShutdown: () => void | Promise<void>) {}
 
   touch(): void {
     this.lastActivity = Date.now()
@@ -86,8 +86,8 @@ export class InactivityTimer {
 
   private reset(): void {
     this.clear()
-    this.timer = setTimeout(() => {
-      this.onShutdown()
+    this.timer = setTimeout(async () => {
+      await this.onShutdown()
     }, INACTIVITY_TIMEOUT_MS)
   }
 

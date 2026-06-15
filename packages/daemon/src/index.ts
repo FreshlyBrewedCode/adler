@@ -17,8 +17,8 @@ async function main() {
   const logger = createLogger(storage)
   const configLoader = new ConfigLoader(logger)
 
-  const inactivity = new InactivityTimer(() => {
-    logger.info("Shutting down due to inactivity")
+  const inactivity = new InactivityTimer(async () => {
+    await logger.info("Shutting down due to inactivity")
     shutdown()
   })
 
@@ -53,7 +53,7 @@ async function main() {
   await logger.info("adlerd started")
 }
 
-main().catch(async (err) => {
+main().catch((err) => {
   console.error(err)
   process.exit(1)
 })
