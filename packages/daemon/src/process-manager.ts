@@ -119,6 +119,12 @@ export class ProcessManager {
 
     if (!proc.terminal) {
       proc.kill()
+      await this.storage.updateSpan(span.id, {
+        status: "failed",
+        finished_at: Date.now(),
+        data: { ...span.data, exit_code: -1 },
+      })
+      this.inactivity?.removeAgent()
       throw new Error("Bun.spawn did not create a PTY terminal")
     }
 
