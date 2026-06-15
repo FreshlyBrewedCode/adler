@@ -1,4 +1,5 @@
 import type { Storage, SessionStatus, ContextItemType } from "@adler/sdk"
+import { DAEMON_SESSION_ID } from "@adler/sdk"
 import type { ProcessManager } from "./process-manager"
 
 export interface HandlerContext {
@@ -24,7 +25,8 @@ export async function handleCommand(ctx: HandlerContext, type: string, payload: 
     }
 
     case "session.list": {
-      return ctx.storage.listSessions()
+      const sessions = await ctx.storage.listSessions()
+      return sessions.filter(s => s.id !== DAEMON_SESSION_ID)
     }
 
     case "session.get": {
