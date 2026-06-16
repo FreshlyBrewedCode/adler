@@ -4,6 +4,7 @@ import { useInput } from "ink"
 import type { Span } from "@adler/sdk"
 import type { PanelProps } from "../../core/types"
 import { TreeNode } from "../TreeNode"
+import { SelectList } from "../SelectList"
 
 function buildChildrenMap(spans: Span[]): Map<string, Span[]> {
   const map = new Map<string, Span[]>()
@@ -54,9 +55,13 @@ export function TracesPanel({ state, width, height }: PanelProps) {
 
   return (
     <Box flexDirection="column" width={width} height={height}>
-      {flatList.map(({ span, depth, isSelected }) => (
-        <TreeNode key={span.id} span={span} depth={depth} isSelected={isSelected} />
-      ))}
+      <SelectList
+        items={flatList}
+        selectedIndex={selectedIndex}
+        renderItem={({ span, depth, isSelected }) => (
+          <TreeNode span={span} depth={depth} isSelected={isSelected} />
+        )}
+      />
     </Box>
   )
 }
