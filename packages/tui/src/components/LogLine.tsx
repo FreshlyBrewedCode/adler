@@ -1,12 +1,6 @@
 import { Box, Text } from "ink"
 import type { Event } from "@adler/sdk"
-
-const LEVEL_COLORS: Record<string, string> = {
-  info: "green",
-  warn: "yellow",
-  error: "red",
-  other: "white",
-}
+import { Theme } from "../theme"
 
 function levelFromType(type: string): "info" | "warn" | "error" | "other" {
   if (type.startsWith("log.info")) return "info"
@@ -17,11 +11,12 @@ function levelFromType(type: string): "info" | "warn" | "error" | "other" {
 
 export function LogLine({ event, isSelected }: { event: Event; isSelected: boolean }) {
   const level = levelFromType(event.type)
-  const message = typeof event.data?.message === 'string' ? event.data.message : JSON.stringify(event.data)
+  const color = Theme.level[level]
+  const message = typeof event.data?.message === "string" ? event.data.message : JSON.stringify(event.data)
   return (
-    <Box borderStyle={isSelected ? "single" : undefined}>
-      <Text dimColor>{new Date(event.timestamp).toLocaleTimeString()}</Text>
-      <Text color={LEVEL_COLORS[level]}> {level.toUpperCase()}</Text>
+    <Box backgroundColor={isSelected ? "gray" : undefined}>
+      <Text dimColor>{new Date(event.timestamp).toLocaleTimeString()} </Text>
+      <Text backgroundColor={color} color="black"> {level.toUpperCase()} </Text>
       <Text> {event.type}</Text>
       <Text dimColor> {message}</Text>
     </Box>
