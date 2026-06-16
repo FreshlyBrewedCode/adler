@@ -4,6 +4,8 @@ import { useInput } from "ink"
 import type { ContextItem } from "@adler/sdk"
 import type { PanelProps } from "../../core/types"
 import { TypeBadge } from "../TypeBadge"
+import { Theme } from "../../theme"
+import { SelectList } from "../SelectList"
 
 export function ContextPanel({ state, width, height }: PanelProps) {
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -26,6 +28,14 @@ export function ContextPanel({ state, width, height }: PanelProps) {
     return map
   }, [grouped])
 
+  const flatItems = useMemo(() => {
+    const result: ContextItem[] = []
+    Object.values(grouped).forEach(items => {
+      items.forEach(item => result.push(item))
+    })
+    return result
+  }, [grouped])
+
   useInput((input, key) => {
     if (key.upArrow) {
       setSelectedIndex(i => Math.max(0, i - 1))
@@ -38,19 +48,27 @@ export function ContextPanel({ state, width, height }: PanelProps) {
     <Box flexDirection="column" width={width} height={height}>
       {Object.entries(grouped).map(([type, items]) => (
         <Box key={type} flexDirection="column" marginTop={1}>
-          <TypeBadge type={type} />
-          <Text dimColor> {items.length} items</Text>
-          {items.map(item => {
-            const isSelected = (itemIndexMap.get(item.id) ?? -1) === selectedIndex
-            const valueText = String(item.value?.text ?? item.value?.url ?? item.value?.path ?? JSON.stringify(item.value))
-            return (
-              <Box key={item.id} borderStyle={isSelected ? "single" : undefined}>
-                <Text color={type === "goal" ? "green" : type === "url" ? "blue" : "white"}>│ </Text>
-                <Text>{valueText}</Text>
-                <Text dimColor> {item.label} {item.description}</Text>
-              </Box>
-            )
-          })}
+          <Box flexDirection="row">
+            <TypeBadge type={type} />
+            <Text dimColor> {items.length} items</Text>
+          </Box>
+          <SelectList
+            items={items}
+            selectedIndex={selectedIndex}
+            renderItem={(item, i, isSelected) => {
+              const contextItem = item as ContextItem
+              const isItemSelected = (itemIndexMap.get(contextItem.id) ?? -1) === selectedIndex
+              const valueText = String(contextItem.value?.text ?? contextItem.value?.url ?? contextItem.value?.path ?? JSON.stringify(contextItem.value))
+              const typeColor = Theme.type[contextItem.type as keyof typeof Theme.type] ?? Theme.muted
+              return (
+                <Box>
+                  <Text color={typeColor}>│ </Text>
+                  <Text>{valueText}</Text>
+                  <Text dimColor> {contextItem.label} {contextItem.description}</Text>
+                </Box>
+              )
+            }}
+          />
         </Box>
       ))}
     </Box>
