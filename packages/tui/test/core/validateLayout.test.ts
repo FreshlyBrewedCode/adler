@@ -13,32 +13,50 @@ describe("validateLayout", () => {
     registerLayouts()
   })
 
-  test("validates correct tree", () => {
+  test("validates correct tabs tree", () => {
     const tree = {
-      type: "layout" as const,
       layout: "tabs",
-      props: {},
-      children: [
-        { type: "panel" as const, id: "overview" }
-      ]
+      content: [{ panel: "overview" }]
+    }
+    expect(validateLayout(tree)).toEqual([])
+  })
+
+  test("validates correct split tree", () => {
+    const tree = {
+      layout: "split",
+      ratio: 0.5,
+      content: [{ panel: "overview" }, { panel: "logs" }]
     }
     expect(validateLayout(tree)).toEqual([])
   })
 
   test("detects unknown panel", () => {
-    const tree = { type: "panel" as const, id: "unknown" }
+    const tree = { panel: "unknown" }
     expect(validateLayout(tree)).toContain("Unknown panel: unknown")
   })
 
+  test("detects unknown layout", () => {
+    const tree = { layout: "grid", content: [{ panel: "overview" }] }
+    expect(validateLayout(tree)).toContain("Unknown layout: grid")
+  })
+
+  test("detects layout with no children", () => {
+    const tree = { layout: "tabs", content: [] }
+    expect(validateLayout(tree)).toContain("Layout tabs must have at least one child")
+  })
+
   test("detects split with wrong child count", () => {
+    const tree = { layout: "split", content: [{ panel: "overview" }] }
+    expect(validateLayout(tree)).toContain("Split layout must have exactly 2 children, got 1")
+  })
+
+  test("validates nested layouts recursively", () => {
     const tree = {
-      type: "layout" as const,
-      layout: "split",
-      props: {},
-      children: [
-        { type: "panel" as const, id: "overview" }
+      layout: "tabs",
+      content: [
+        { layout: "split", content: [{ panel: "overview" }, { panel: "unknown-panel" }] }
       ]
     }
-    expect(validateLayout(tree)).toContain("Split layout must have exactly 2 children, got 1")
+    expect(validateLayout(tree)).toContain("Unknown panel: unknown-panel")
   })
 })

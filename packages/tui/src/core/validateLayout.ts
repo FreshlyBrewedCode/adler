@@ -5,9 +5,9 @@ import { LayoutRegistry } from "./LayoutRegistry"
 export function validateLayout(node: TreeNode): string[] {
   const errors: string[] = []
 
-  if (node.type === "panel") {
-    if (!PanelRegistry.get(node.id)) {
-      errors.push(`Unknown panel: ${node.id}`)
+  if ("panel" in node) {
+    if (!PanelRegistry.get(node.panel)) {
+      errors.push(`Unknown panel: ${node.panel}`)
     }
     return errors
   }
@@ -18,16 +18,16 @@ export function validateLayout(node: TreeNode): string[] {
     return errors
   }
 
-  if (node.children.length === 0) {
+  if (node.content.length === 0) {
     errors.push(`Layout ${node.layout} must have at least one child`)
   }
 
-  if (node.layout === "split" && node.children.length !== 2) {
-    errors.push(`Split layout must have exactly 2 children, got ${node.children.length}`)
+  if (node.layout === "split" && node.content.length !== 2) {
+    errors.push(`Split layout must have exactly 2 children, got ${node.content.length}`)
   }
 
-  for (const child of node.children) {
-    errors.push(...validateLayout(child))
+  for (const child of node.content) {
+    errors.push(...validateLayout(child as TreeNode))
   }
 
   return errors
