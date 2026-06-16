@@ -1,40 +1,67 @@
-import { useEffect, useReducer } from "react"
-import { Box, useInput, useApp } from "ink"
+import { useEffect, useReducer, useState } from "react"
+import { Box, useInput, useApp, useStdout } from "ink"
 import { createClient, type EventType, DAEMON_SESSION_ID } from "@adler/sdk"
 import { initialState, reducer } from "./types"
 import { Header } from "./components/Header"
 import { Footer } from "./components/Footer"
-import { HotkeyDialog } from "./components/HotkeyDialog"
-import { OverviewTab } from "./components/OverviewTab"
-import { ContextTab } from "./components/ContextTab"
-import { AgentsTab } from "./components/AgentsTab"
-import { TracesTab } from "./components/TracesTab"
-import { LogsTab } from "./components/LogsTab"
+import { HelpModal } from "./components/HelpModal"
+import { LayoutRenderer } from "./core/LayoutRenderer"
+import { registerPanels } from "./components/panels"
+import { registerLayouts } from "./components/layouts"
+import type { TreeNode } from "./core/types"
+
+const defaultLayout: TreeNode = {
+  type: "layout",
+  layout: "tabs",
+  props: {},
+  children: [
+    { type: "panel", id: "overview" },
+    { type: "panel", id: "context" },
+    { type: "panel", id: "agents" },
+    { type: "panel", id: "traces" },
+    { type: "panel", id: "logs" }
+  ]
+}
+
+function resolveFocusedPanel(node: TreeNode, focusPath: number[]): string | null {
+  if (node.type === "panel") return node.id
+  if (focusPath.length === 0) return null
+  const childIndex = focusPath[0]
+  const child = node.children[childIndex]
+  if (!child) return null
+  return resolveFocusedPanel(child, focusPath.slice(1))
+}
 
 export function App({ sessionId }: { sessionId: string }) {
   const [state, dispatch] = useReducer(reducer, initialState)
+  const [isHelpOpen, setIsHelpOpen] = useState(false)
+  const [focusPath, setFocusPath] = useState<number[]>([0])
+  const [layout] = useState<TreeNode>(defaultLayout)
   const { exit } = useApp()
+  const { stdout } = useStdout()
 
-  // Subscribe to session events
+  useEffect(() => {
+    registerPanels()
+    registerLayouts()
+  }, [])
+
   useEffect(() => {
     const client = createClient()
     let cleanup: (() => void) | undefined
-
     ;(async () => {
       try {
         const unsub = await client.subscribe(sessionId, (msg) => {
           if (msg.type === "snapshot") {
             dispatch({ type: "snapshot", payload: msg.payload })
           } else if (msg.type === "event") {
-            const payload = typeof msg.payload === 'object' && msg.payload !== null ? (msg.payload as Record<string, unknown>) : {}
             dispatch({
               type: "event",
               payload: {
                 id: Date.now(),
                 session_id: sessionId,
-                span_id: typeof payload.span_id === 'string' ? payload.span_id : null,
+                span_id: (msg.payload as any)?.span_id ?? null,
                 type: msg.event as EventType,
-                data: payload,
+                data: msg.payload as any,
                 timestamp: Date.now(),
               },
             })
@@ -55,32 +82,58 @@ export function App({ sessionId }: { sessionId: string }) {
         })
       }
     })()
-
     return () => {
       cleanup?.()
       client.close()
     }
   }, [sessionId])
 
+  useEffect(() => {
+    const client = createClient()
+    let cleanup: (() => void) | undefined
+    ;(async () => {
+      try {
+        const unsub = await client.subscribe(DAEMON_SESSION_ID, (msg) => {
+          if (msg.type === "snapshot") {
+            const snapshot = msg.payload as { session: any; spans: any[]; events: any[]; context: any[] }
+            dispatch({ type: "daemonSnapshot", payload: snapshot.events ?? [] })
+          } else if (msg.type === "event") {
+            dispatch({
+              type: "daemonEvent",
+              payload: {
+                id: Date.now(),
+                session_id: DAEMON_SESSION_ID,
+                span_id: null,
+                type: msg.event as EventType,
+                data: msg.payload as any,
+                timestamp: Date.now(),
+              },
+            })
+          }
+        })
+        cleanup = unsub
+      } catch {
+        // Daemon events are best-effort
+      }
+    })()
+    return () => {
+      cleanup?.()
+      client.close()
+    }
+  }, [])
+
+  const focusedPanel = resolveFocusedPanel(layout, focusPath)
+
   useInput((input, key) => {
-    if (state.isHelpOpen) {
+    if (isHelpOpen) {
       if (input === "?" || key.escape) {
-        dispatch({ type: "toggleHelp" })
+        setIsHelpOpen(false)
       }
       return
     }
 
     if (input === "?") {
-      dispatch({ type: "toggleHelp" })
-      return
-    }
-
-    if (key.tab) {
-      if (key.shift) {
-        dispatch({ type: "prevTab" })
-      } else {
-        dispatch({ type: "nextTab" })
-      }
+      setIsHelpOpen(true)
       return
     }
 
@@ -89,78 +142,42 @@ export function App({ sessionId }: { sessionId: string }) {
       return
     }
 
-    if (input >= "1" && input <= "5") {
-      dispatch({ type: "setTab", tab: parseInt(input) - 1 })
+    if (key.tab) {
+      setFocusPath(path => {
+        if (path.length === 0) return [0]
+        const newPath = [...path]
+        newPath[0] = key.shift
+          ? Math.max(0, newPath[0] - 1)
+          : Math.min(4, newPath[0] + 1)
+        return newPath
+      })
       return
-    }
-
-    if (state.activeTab === 2) {
-      // Agents tab
-      const agents = state.spans.filter(s => s.kind === "agent")
-      if (key.upArrow) {
-        dispatch({ type: "selectAgent", index: Math.max(0, state.agentsSelectedIndex - 1) })
-      } else if (key.downArrow) {
-        dispatch({ type: "selectAgent", index: Math.max(0, Math.min(agents.length - 1, state.agentsSelectedIndex + 1)) })
-      } else if (key.return) {
-        const agent = agents[state.agentsSelectedIndex]
-        if (agent) {
-          // TODO: attach or read output
-        }
-      }
-    } else if (state.activeTab === 3) {
-      // Traces tab
-      if (key.upArrow) {
-        dispatch({ type: "selectTrace", index: Math.max(0, state.tracesSelectedIndex - 1) })
-      } else if (key.downArrow) {
-        dispatch({ type: "selectTrace", index: Math.max(0, Math.min(state.spans.length - 1, state.tracesSelectedIndex + 1)) })
-      }
-    } else if (state.activeTab === 4) {
-      // Logs tab
-      if (input === "d") {
-        dispatch({ type: "toggleLogsView" })
-      } else if (input === "i") {
-        dispatch({ type: "setLogsFilter", filter: "info" })
-      } else if (input === "w") {
-        dispatch({ type: "setLogsFilter", filter: "warn" })
-      } else if (input === "e") {
-        dispatch({ type: "setLogsFilter", filter: "error" })
-      } else if (input === "f") {
-        dispatch({ type: "toggleLogsAutoScroll" })
-      } else if (key.upArrow) {
-        dispatch({ type: "selectLog", index: Math.max(0, state.logsSelectedIndex - 1) })
-      } else if (key.downArrow) {
-        dispatch({ type: "selectLog", index: Math.max(0, Math.min(state.events.length - 1, state.logsSelectedIndex + 1)) })
-      }
     }
   })
 
+  const width = stdout.columns ?? 80
+  const height = stdout.rows ?? 24
+
   return (
-    <Box flexDirection="column" height="100%">
+    <Box flexDirection="column" width={width} height={height}>
       <Header session={state.session} />
-      <Box flexGrow={1}>
-        {state.activeTab === 0 && (
-          <OverviewTab session={state.session} spans={state.spans} context={state.context} />
-        )}
-        {state.activeTab === 1 && (
-          <ContextTab context={state.context} selectedIndex={0} />
-        )}
-        {state.activeTab === 2 && (
-          <AgentsTab spans={state.spans} selectedIndex={state.agentsSelectedIndex} />
-        )}
-        {state.activeTab === 3 && (
-          <TracesTab spans={state.spans} selectedIndex={state.tracesSelectedIndex} />
-        )}
-        {state.activeTab === 4 && (
-          <LogsTab
-            events={state.events}
-            selectedIndex={state.logsSelectedIndex}
-            filter={state.logsFilter}
-            logsView={state.logsView}
-          />
-        )}
+      <Box flexGrow={1} overflow="hidden">
+        <LayoutRenderer
+          node={layout}
+          state={state}
+          dispatch={dispatch}
+          width={width}
+          height={height - 2}
+          focusPath={focusPath}
+          onFocusChange={setFocusPath}
+        />
       </Box>
-      {state.isHelpOpen && <HotkeyDialog />}
-      <Footer activeTab={state.activeTab} />
+      {isHelpOpen && (
+        <Box position="absolute" width={width} height={height} justifyContent="center" alignItems="center">
+          <HelpModal onClose={() => setIsHelpOpen(false)} />
+        </Box>
+      )}
+      <Footer focusedPanelId={focusedPanel} />
     </Box>
   )
 }
