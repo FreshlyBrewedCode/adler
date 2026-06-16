@@ -66,44 +66,36 @@ Owns the runtime, registries, and renderer.
 
 The config exports a `tui` section with a layout function. The function receives data constructor primitives (`Layout`, `Panel`) as arguments and returns a JSX tree (which evaluates to plain JSON objects).
 
-```tsx
+```ts
 export default {
   // ...existing config (plugins, agents, hooks, workflows)...
   tui: {
-    layout: ({ Layout, Panel }) => (
-      <Layout type="tabs">
-        <Layout type="split" ratio={0.6}>
-          <Panel id="overview" />
-          <Panel id="agents" />
-        </Layout>
-        <Panel id="traces" />
-        <Panel id="logs" />
-      </Layout>
-    )
+    layout: {
+      layout: "tabs",
+      content: ["overview", "context", "agents", "traces", "logs"]
+    }
   }
 }
 ```
-
-**No imports** in the config. The `Layout` and `Panel` functions are injected by the TUI at evaluation time.
 
 ### 3.3. Layout Tree — Plain JSON Objects
 
 The JSX in the config evaluates to a plain JSON tree. The TUI normalizes and validates this tree before rendering.
 
 ```ts
+type ContentNode = LayoutNode | PanelNode | string
+
 interface LayoutNode {
-  type: "layout"
-  layout: string      // layout type ID (e.g., "tabs", "split")
-  props: Record<string, unknown>
-  children: TreeNode[]
+  layout: string        // layout type ID (e.g., "tabs", "split")
+  content: ContentNode[]
+  [key: string]: unknown // flat props: ratio, direction, etc.
 }
 
 interface PanelNode {
-  type: "panel"
-  id: string          // panel ID from PanelRegistry
+  panel: string         // panel ID from PanelRegistry
 }
 
-type TreeNode = LayoutNode | PanelNode
+type TreeNode = LayoutNode | PanelNode  // normalized (no string shorthands)
 ```
 
 ## 4. Panel Concept & API
@@ -377,38 +369,18 @@ Panel-specific hotkeys (e.g., `d` for daemon view in Logs) are handled by the fo
 
 ### 8.1. Config Evaluation
 
-The TUI config loader evaluates the `tui.layout` function:
+The TUI config loader normalizes the layout config into a render tree:
 
 ```ts
-const Layout = (props: LayoutProps) => ({
-  type: "layout" as const,
-  layout: props.type,
-  props: omit(props, "type", "children"),
-  children: props.children ?? []
-})
-
-const Panel = (props: PanelProps) => ({
-  type: "panel" as const,
-  id: props.id
-})
-
-const layoutTree = config.tui?.layout?.({ Layout, Panel })
+const layoutTree: TreeNode = normalizeLayout(config.tui?.layout ?? defaultLayout)
 ```
 
 If no `tui.layout` is defined, the TUI falls back to a default `TabsLayout` with all 5 built-in panels in order:
 
 ```ts
 const defaultLayout = {
-  type: "layout",
   layout: "tabs",
-  props: {},
-  children: [
-    { type: "panel", id: "overview" },
-    { type: "panel", id: "context" },
-    { type: "panel", id: "agents" },
-    { type: "panel", id: "traces" },
-    { type: "panel", id: "logs" }
-  ]
+  content: ["overview", "context", "agents", "traces", "logs"]
 }
 ```
 
@@ -551,50 +523,43 @@ The architecture is designed so that adding a plugin system later is straightfor
 ## 13. Example Configs
 
 ### Default (tabs)
-```tsx
+```ts
 export default {
   tui: {
-    layout: ({ Layout, Panel }) => (
-      <Layout type="tabs">
-        <Panel id="overview" />
-        <Panel id="context" />
-        <Panel id="agents" />
-        <Panel id="traces" />
-        <Panel id="logs" />
-      </Layout>
-    )
+    layout: {
+      layout: "tabs",
+      content: ["overview", "context", "agents", "traces", "logs"]
+    }
   }
 }
 ```
 
 ### Split screen with agents + logs
-```tsx
+```ts
 export default {
   tui: {
-    layout: ({ Layout, Panel }) => (
-      <Layout type="split" ratio={0.4} direction="vertical">
-        <Panel id="agents" />
-        <Panel id="logs" />
-      </Layout>
-    )
+    layout: {
+      layout: "split",
+      ratio: 0.4,
+      direction: "vertical",
+      content: ["agents", "logs"]
+    }
   }
 }
 ```
 
 ### Nested: tabs with a split tab
-```tsx
+```ts
 export default {
   tui: {
-    layout: ({ Layout, Panel }) => (
-      <Layout type="tabs">
-        <Panel id="overview" />
-        <Layout type="split" ratio={0.5}>
-          <Panel id="traces" />
-          <Panel id="logs" />
-        </Layout>
-        <Panel id="agents" />
-      </Layout>
-    )
+    layout: {
+      layout: "tabs",
+      content: [
+        "overview",
+        { layout: "split", ratio: 0.5, content: ["traces", "logs"] },
+        "agents"
+      ]
+    }
   }
 }
 ```
@@ -606,7 +571,8 @@ export default {
 | Layout type? | Grid-based dashboard + tab-based flexibility |
 | Plugin scope? | Architect for future plugins only; do not design the full plugin API now |
 | Panel data model? | Hybrid: context for shared data, hooks for panel-specific |
-| Config imports? | Zero imports: function-based with injected primitives |
+| Config format? | Plain object tree — no JSX, no function wrapper |
+| Config imports? | No imports needed — plain object literal |
 | Panel registry owner? | TUI owns the registry |
 | Layout abstraction? | `@adler/ui` package with JSX constructors (not needed; primitives are injected) |
 | Initial layouts? | `TabsLayout` and `SplitLayout` (with ratio) |
