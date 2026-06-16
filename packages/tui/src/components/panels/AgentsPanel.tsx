@@ -2,6 +2,8 @@ import { useState } from "react"
 import { Box, Text } from "ink"
 import { useInput } from "ink"
 import type { PanelProps } from "../../core/types"
+import { Card } from "../Card"
+import { SelectList } from "../SelectList"
 
 function formatDuration(started: number, finished: number | null): string {
   const ms = (finished ?? Date.now()) - started
@@ -28,23 +30,27 @@ export function AgentsPanel({ state, width, height }: PanelProps) {
 
   return (
     <Box flexDirection="column" width={width} height={height}>
-      {agents.map((span, i) => {
-        const isSelected = i === selectedIndex
-        const duration = formatDuration(span.started_at, span.finished_at)
-        return (
-          <Box key={span.id} borderStyle={isSelected ? "single" : undefined}>
-            <Text color={span.status === "done" ? "green" : span.status === "failed" ? "red" : span.status === "blocked" ? "yellow" : "blue"}>
-              ● {" "}
-            </Text>
-            <Text>{String(span.data?.agent_type ?? "")} </Text>
-            <Text dimColor>{String(span.data?.prompt ?? "").slice(0, 40)}… </Text>
-            <Text>{duration}</Text>
-            {span.data?.exit_code !== null && span.data?.exit_code !== undefined && (
-              <Text> exit:{String(span.data.exit_code)}</Text>
-            )}
-          </Box>
-        )
-      })}
+      <SelectList
+        items={agents}
+        selectedIndex={selectedIndex}
+        renderItem={(span, i, isSelected) => {
+          const duration = formatDuration(span.started_at, span.finished_at)
+          return (
+            <Card
+              title={String(span.data?.agent_type ?? span.name)}
+              description={String(span.data?.prompt ?? "").slice(0, 40)}
+              status={span.status as any}
+              hint={
+                span.status === "running"
+                  ? "enter → suspend TUI, stream live PTY"
+                  : "enter → replay stored PTY output"
+              }
+              isSelected={isSelected}
+              width={width}
+            />
+          )
+        }}
+      />
     </Box>
   )
 }
