@@ -1,15 +1,10 @@
 import { Text } from "ink"
-
-const TYPE_COLORS: Record<string, string> = {
-  goal: "green",
-  url: "blue",
-  file: "yellow",
-  text: "white",
-}
+import { Theme } from "../theme"
 
 export function TypeBadge({ type }: { type: string }) {
+  const bg = Theme.type[type as keyof typeof Theme.type] ?? Theme.muted
   return (
-    <Text backgroundColor={TYPE_COLORS[type] ?? "white"} color="black">
+    <Text backgroundColor={bg} color="black">
       {" "}{type.toUpperCase()}{" "}
     </Text>
   )
