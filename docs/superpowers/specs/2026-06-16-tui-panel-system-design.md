@@ -12,6 +12,18 @@ Restructure the adler TUI into a **panel-based architecture** where:
 - Layouts are registrable, nestable, and config-driven
 - The `adler.tsx` config can define the TUI layout using JSX without importing UI components
 - The architecture is future-proof for a plugin system that adds new panels
+- The TUI runs in **fullscreen** mode, taking full advantage of the terminal real estate
+- Fullscreen mode is seamless, without any visible UI decorations that detract from the panels
+- The app layer handles stdin/stdout to properly go fullscreen and restore on exit
+
+## 1.1. Fullscreen Requirement
+
+The TUI must run in fullscreen mode. This means:
+- The app takes full advantage of the terminal real estate
+- The app layer handles stdin/stdout to properly go fullscreen and restore on exit
+- No visible UI decorations that detract from the panels (e.g., window chrome, scrollbars)
+- Fullscreen mode is the default and only mode for the TUI
+- On exit, the terminal state is restored to its previous state
 
 ## 2. Context
 
@@ -39,6 +51,7 @@ Owns the runtime, registries, and renderer.
 - `LayoutRenderer` — recursive React component that walks the layout tree and renders layouts/panels
 - `PanelChrome` — shared wrapper for borders, titles, scroll indicators
 - `App` — bootstraps the store, loads the layout from config, and renders the root `LayoutRenderer`
+- `Fullscreen` — handles fullscreen mode, terminal resize events, and cleanup on exit
 
 **Shared UI Components:**
 - `StatusBadge` — colored dot with status text
@@ -142,9 +155,29 @@ The existing tabs become panels:
 
 Each panel is extracted from its current `*Tab.tsx` into a `panels/` directory. The central reducer's panel-specific state (e.g., `agentsSelectedIndex`, `logsFilter`, `logsAutoScroll`) is removed from the reducer and moved into panel-local state.
 
-## 5. Layout Registry & Renderer
+## 5. Fullscreen Mode
 
-### 5.1. Layout Definition
+The TUI runs in fullscreen mode to maximize terminal real estate for the panel layout.
+
+### 5.1. Implementation
+
+- Use `ink`'s `render` with `stdout` in raw mode or use `ink`'s fullscreen mode
+- The `App` component manages the terminal state:
+  - On mount: clear screen, hide cursor, enter raw mode
+  - On unmount: clear screen, show cursor, exit raw mode, restore terminal
+- Terminal resize events are captured via `process.stdout.on('resize')` and passed to the `LayoutRenderer` via `width` and `height` props
+- The root `Layout` receives the full terminal dimensions (`stdout.columns` × `stdout.rows`)
+
+### 5.2. Responsive Behavior
+
+- Panels receive their allocated `width` and `height` from the parent layout
+- The `LayoutRenderer` passes these dimensions down the tree
+- Each layout shell computes child dimensions based on its props (e.g., `SplitLayout` divides by `ratio`)
+- Panels adapt their content based on available space (e.g., fewer columns when narrow)
+
+## 6. Layout Registry & Renderer
+
+### 6.1. Layout Definition
 
 ```ts
 interface LayoutDefinition {
@@ -165,7 +198,7 @@ interface LayoutProps {
 }
 ```
 
-### 5.2. Built-in Layouts
+### 6.2. Built-in Layouts
 
 **`TabsLayout`** — renders children as tabs with a tab bar
 - Props: `{ tabPosition?: "top" | "bottom" }` (default: `"top"`)
@@ -178,7 +211,7 @@ interface LayoutProps {
 - Keyboard: No default navigation; focus is on the active child.
 - Focus: The active child index is the first element of the focus path.
 
-### 5.3. Layout Renderer
+### 6.3. Layout Renderer
 
 ```tsx
 function LayoutRenderer({ node, state, dispatch, width, height, focusPath, onFocusChange }) {
@@ -224,7 +257,7 @@ function LayoutRenderer({ node, state, dispatch, width, height, focusPath, onFoc
 }
 ```
 
-### 5.4. Focus Path
+### 6.4. Focus Path
 
 Focus is tracked as an array of indices into the tree. For example, `[1, 0]` means:
 - Root layout's child at index 1
@@ -232,7 +265,7 @@ Focus is tracked as an array of indices into the tree. For example, `[1, 0]` mea
 
 Each layout shell handles its own navigation (e.g., `TabsLayout` switches tabs on arrow keys, `SplitLayout` does not consume arrow keys). Focus is passed down the tree via `focusPath` and `onFocusChange`.
 
-### 5.5. Global Keyboard Handling
+### 6.5. Global Keyboard Handling
 
 The `App` component handles global hotkeys (not individual layouts):
 - `q` / `ctrl+c` — quit
@@ -243,9 +276,9 @@ Layouts consume keyboard events only for their own navigation. A `TabsLayout` co
 
 Panel-specific hotkeys (e.g., `d` for daemon view in Logs) are handled by the focused panel component directly using ink's `useInput` hook.
 
-## 6. Config Integration
+## 7. Config Integration
 
-### 6.1. Config Evaluation
+### 7.1. Config Evaluation
 
 The TUI config loader evaluates the `tui.layout` function:
 
@@ -282,7 +315,7 @@ const defaultLayout = {
 }
 ```
 
-### 6.2. Validation
+### 7.2. Validation
 
 Before rendering, the tree is validated:
 - Every panel node must reference a registered panel ID
@@ -293,9 +326,9 @@ Before rendering, the tree is validated:
 
 Validation errors are displayed in the TUI as a fallback panel with the error message.
 
-## 7. Data Flow
+## 8. Data Flow
 
-### 7.1. Central Store
+### 8.1. Central Store
 
 `StoreContext` holds shared data:
 - `session: Session | null`
@@ -306,7 +339,7 @@ Validation errors are displayed in the TUI as a fallback panel with the error me
 
 The `App` component subscribes to the SDK and updates the store. The central reducer is simplified: it only handles global state updates (snapshots, incoming events). Panel-specific state (selection indices, filters, scroll position) is removed from the reducer.
 
-### 7.2. Panel-Local State
+### 8.2. Panel-Local State
 
 Panels manage their own state using `useState`:
 - `AgentsPanel`: `selectedIndex`, `sortOrder`
@@ -314,7 +347,7 @@ Panels manage their own state using `useState`:
 - `TracesPanel`: `selectedIndex`, `expandedNodes`
 - `ContextPanel`: `selectedIndex`, `groupBy`
 
-### 7.3. Panel-Specific Subscriptions
+### 8.3. Panel-Specific Subscriptions
 
 The `LogsPanel` currently subscribes to daemon events. This moves into the panel component:
 
@@ -330,7 +363,7 @@ function LogsPanel({ state, dispatch, width, height }) {
 }
 ```
 
-## 8. Shared UI Components
+## 9. Shared UI Components
 
 These are extracted from existing tab components and made reusable:
 
@@ -341,7 +374,7 @@ These are extracted from existing tab components and made reusable:
 - `SelectList` — list of items with keyboard navigation (arrow keys, enter) and selection border
 - `TypeBadge` — colored badge for context item types (goal=green, url=blue, file=yellow, text=white)
 
-## 9. Plugin Future-Proofing
+## 10. Plugin Future-Proofing
 
 The architecture is designed so that adding a plugin system later is straightforward:
 
@@ -350,13 +383,19 @@ The architecture is designed so that adding a plugin system later is straightfor
 - **Config evaluation** is already injectable. The `tui.layout` function receives primitives; a plugin could extend the primitives object to add new data constructors.
 - **No changes required** to the core renderer or config loader to support plugin panels. The only missing piece is the plugin loading mechanism (which is out of scope for this design).
 
-## 10. Migration Path
+## 11. Migration Path
 
-### Phase 1: Extract Shared Components
+### Phase 1: Fullscreen Mode
+- Enable fullscreen mode in `App` using `ink`'s fullscreen or raw mode
+- Handle terminal resize events to update `stdout.columns` and `stdout.rows`
+- Ensure terminal state is restored on exit (clear screen, reset cursor)
+- Test fullscreen behavior on different terminal sizes
+
+### Phase 2: Extract Shared Components
 - Extract `StatusBadge`, `LogLine`, `TreeNode`, `SelectList`, `TypeBadge` from existing tabs
 - Extract `PanelChrome` from tab borders
 
-### Phase 2: Create Panel Registry & Convert Tabs
+### Phase 3: Create Panel Registry & Convert Tabs
 - Create `PanelRegistry` with `register` / `get` / `getAll`
 - Convert each `*Tab.tsx` into a `panels/*Panel.tsx`:
   - Move panel-specific state from reducer into component local state
@@ -365,24 +404,24 @@ The architecture is designed so that adding a plugin system later is straightfor
 - Update `Header.tsx` to read tab names from the layout tree instead of hardcoding
 - Update `Footer.tsx` to read hotkeys from the focused panel's metadata
 
-### Phase 3: Create Layout Registry & Renderer
+### Phase 4: Create Layout Registry & Renderer
 - Create `LayoutRegistry` with built-in `TabsLayout` and `SplitLayout`
 - Implement `LayoutRenderer` with recursive rendering
 - Implement focus path tracking and keyboard navigation
 
-### Phase 4: Config Integration
+### Phase 5: Config Integration
 - Add `tui.layout` support to the config loader
 - Implement Layout/Panel data constructors
 - Add layout tree validation
 - Add default fallback (tabs with all panels)
 
-### Phase 5: Cleanup
+### Phase 6: Cleanup
 - Remove hardcoded tab rendering from `app.tsx`
 - Remove panel-specific state from the central reducer
 - Remove hardcoded tab keyboard handling from `app.tsx`
 - Update tests
 
-## 11. Testing Strategy
+## 12. Testing Strategy
 
 - **Unit tests:**
   - `PanelRegistry` — register, get, duplicate ID handling
@@ -390,18 +429,21 @@ The architecture is designed so that adding a plugin system later is straightfor
   - `LayoutRenderer` — renders panel nodes, renders layout nodes, validates invalid panel IDs
   - Layout tree validation — missing children, invalid IDs, wrong child count for SplitLayout
   - Data constructors (`Layout`, `Panel`) — correct JSON output
+  - Fullscreen — terminal state is restored on exit, resize events are captured
 
 - **Integration tests:**
   - Config evaluation — `tui.layout` function receives primitives and returns valid tree
   - Default fallback — when no `tui.layout` is defined, renders tabs with all panels
   - Keyboard navigation — tabs switch with tab/shift-tab, split layout does not consume arrow keys
   - Panel-local state — panel state is isolated and does not leak into other panels
+  - Fullscreen — app enters and exits fullscreen correctly
 
 - **Visual tests:**
   - Each layout shell renders correctly with ink's `render` + `stdout.columns/rows` mocked
   - Panel chrome renders borders and titles correctly
+  - Fullscreen — app renders at full terminal dimensions
 
-## 12. Example Configs
+## 13. Example Configs
 
 ### Default (tabs)
 ```tsx
@@ -452,7 +494,7 @@ export default {
 }
 ```
 
-## 13. Open Questions (Resolved During Design)
+## 14. Open Questions (Resolved During Design)
 
 | Question | Decision |
 |----------|----------|
@@ -463,3 +505,4 @@ export default {
 | Panel registry owner? | TUI owns the registry |
 | Layout abstraction? | `@adler/ui` package with JSX constructors (not needed; primitives are injected) |
 | Initial layouts? | `TabsLayout` and `SplitLayout` (with ratio) |
+| Fullscreen? | Yes, fullscreen is the default and only mode |
