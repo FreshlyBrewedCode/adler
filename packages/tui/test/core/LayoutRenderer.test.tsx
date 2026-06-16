@@ -70,4 +70,50 @@ describe("LayoutRenderer", () => {
     )
     expect(lastFrame()).toContain("Unknown panel")
   })
+
+  test("renders error for unknown layout", () => {
+    const node = {
+      type: "layout" as const,
+      layout: "unknown",
+      props: {},
+      children: []
+    }
+    const { lastFrame } = render(
+      <LayoutRenderer
+        node={node}
+        state={initialState}
+        dispatch={() => {}}
+        width={80}
+        height={24}
+        focusPath={[]}
+        onFocusChange={() => {}}
+      />
+    )
+    expect(lastFrame()).toContain("Unknown layout")
+  })
+
+  test("propagates dimensions through split layout", () => {
+    const node = {
+      type: "layout" as const,
+      layout: "split",
+      props: { ratio: 0.5, direction: "horizontal" },
+      children: [
+        { type: "panel" as const, id: "overview" },
+        { type: "panel" as const, id: "agents" }
+      ]
+    }
+    const { lastFrame } = render(
+      <LayoutRenderer
+        node={node}
+        state={initialState}
+        dispatch={() => {}}
+        width={80}
+        height={24}
+        focusPath={[0]}
+        onFocusChange={() => {}}
+      />
+    )
+    expect(lastFrame()).toContain("Overview")
+    expect(lastFrame()).toContain("Agents")
+  })
 })

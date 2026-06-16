@@ -50,18 +50,33 @@ export function LayoutRenderer({
     )
   }
 
-  const children = node.children.map((child, i) => (
-    <LayoutRenderer
-      key={i}
-      node={child}
-      state={state}
-      dispatch={dispatch}
-      width={width}
-      height={height}
-      focusPath={focusPath.slice(1)}
-      onFocusChange={(subPath) => onFocusChange([i, ...subPath])}
-    />
-  ))
+  const children = node.children.map((child, i) => {
+    let childWidth = width
+    let childHeight = height
+
+    if (node.layout === "split") {
+      const ratio = (node.props.ratio as number) ?? 0.5
+      const direction = (node.props.direction as "horizontal" | "vertical") ?? "horizontal"
+      if (direction === "horizontal") {
+        childWidth = i === 0 ? Math.floor(width * ratio) : width - Math.floor(width * ratio)
+      } else {
+        childHeight = i === 0 ? Math.floor(height * ratio) : height - Math.floor(height * ratio)
+      }
+    }
+
+    return (
+      <LayoutRenderer
+        key={i}
+        node={child}
+        state={state}
+        dispatch={dispatch}
+        width={childWidth}
+        height={childHeight}
+        focusPath={focusPath.slice(1)}
+        onFocusChange={(subPath) => onFocusChange([i, ...subPath])}
+      />
+    )
+  })
 
   return (
     <layout.component
