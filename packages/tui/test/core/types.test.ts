@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test"
-import type { PanelDefinition, LayoutDefinition, TreeNode, LayoutNode, PanelNode } from "../../src/core/types"
+import type { PanelDefinition, LayoutDefinition, TreeNode, LayoutNode, PanelNode, HotkeyDefinition } from "../../src/core/types"
 
 describe("core types", () => {
   test("TreeNode array can contain both LayoutNode and PanelNode", () => {
@@ -56,5 +56,31 @@ describe("core types", () => {
     }
     expect(layout.id).toBe("tabs")
     expect(layout.component).toBeDefined()
+  })
+
+  test("HotkeyDefinition handler is optional", () => {
+    const hotkey: HotkeyDefinition = {
+      key: "a",
+      description: "do a"
+    }
+    expect(hotkey.key).toBe("a")
+    expect(hotkey.description).toBe("do a")
+    expect(hotkey.handler).toBeUndefined()
+  })
+
+  test("LayoutDefinition defaultLayoutProps is optional", () => {
+    const layoutWithDefaults: LayoutDefinition = {
+      id: "split",
+      component: () => null,
+      defaultLayoutProps: { ratio: 0.5 }
+    }
+    expect(layoutWithDefaults.defaultLayoutProps).toBeDefined()
+    expect(layoutWithDefaults.defaultLayoutProps?.ratio).toBe(0.5)
+
+    const layoutWithoutDefaults: LayoutDefinition = {
+      id: "tabs",
+      component: () => null
+    }
+    expect(layoutWithoutDefaults.defaultLayoutProps).toBeUndefined()
   })
 })
