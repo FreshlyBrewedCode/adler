@@ -1,5 +1,5 @@
 import { Box, Text } from "ink"
-import type { TreeNode } from "./types"
+import type { TreeNode, LayoutNode } from "./types"
 import { PanelRegistry } from "./PanelRegistry"
 import { LayoutRegistry } from "./LayoutRegistry"
 import { PanelChrome } from "../components/PanelChrome"
@@ -25,12 +25,13 @@ export function LayoutRenderer({
   focusPath,
   onFocusChange,
 }: LayoutRendererProps) {
-  if (node.type === "panel") {
-    const panel = PanelRegistry.get(node.id)
+  if ("panel" in node) {
+    const panelNode = node as { panel: string }
+    const panel = PanelRegistry.get(panelNode.panel)
     if (!panel) {
       return (
         <Box width={width} height={height}>
-          <Text color="red">Unknown panel: {node.id}</Text>
+          <Text color="red">Unknown panel: {panelNode.panel}</Text>
         </Box>
       )
     }
@@ -41,22 +42,25 @@ export function LayoutRenderer({
     )
   }
 
-  const layout = LayoutRegistry.get(node.layout)
+  const layoutNode = node as LayoutNode
+  const layout = LayoutRegistry.get(layoutNode.layout)
   if (!layout) {
     return (
       <Box width={width} height={height}>
-        <Text color="red">Unknown layout: {node.layout}</Text>
+        <Text color="red">Unknown layout: {layoutNode.layout}</Text>
       </Box>
     )
   }
 
-  const children = node.children.map((child, i) => {
+  const { layout: _layout, content: _content, ...layoutProps } = layoutNode
+
+  const children = layoutNode.content.map((child, i) => {
     let childWidth = width
     let childHeight = height
 
-    if (node.layout === "split") {
-      const ratio = (node.props.ratio as number) ?? 0.5
-      const direction = (node.props.direction as "horizontal" | "vertical") ?? "horizontal"
+    if (layoutNode.layout === "split") {
+      const ratio = (layoutNode.ratio as number) ?? 0.5
+      const direction = (layoutNode.direction as "horizontal" | "vertical") ?? "horizontal"
       if (direction === "horizontal") {
         childWidth = i === 0 ? Math.floor(width * ratio) : width - Math.floor(width * ratio)
       } else {
@@ -67,7 +71,7 @@ export function LayoutRenderer({
     return (
       <LayoutRenderer
         key={i}
-        node={child}
+        node={child as TreeNode}
         state={state}
         dispatch={dispatch}
         width={childWidth}
@@ -80,7 +84,7 @@ export function LayoutRenderer({
 
   return (
     <layout.component
-      layoutProps={node.props}
+      layoutProps={layoutProps}
       width={width}
       height={height}
       state={state}

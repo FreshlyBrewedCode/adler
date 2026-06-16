@@ -17,7 +17,7 @@ describe("LayoutRenderer", () => {
   })
 
   test("renders panel node", () => {
-    const node = { type: "panel" as const, id: "overview" }
+    const node = { panel: "overview" }
     const { lastFrame } = render(
       <LayoutRenderer
         node={node}
@@ -34,11 +34,9 @@ describe("LayoutRenderer", () => {
 
   test("renders layout node with children", () => {
     const node = {
-      type: "layout" as const,
       layout: "tabs",
-      props: {},
-      children: [
-        { type: "panel" as const, id: "overview" }
+      content: [
+        { panel: "overview" }
       ]
     }
     const { lastFrame } = render(
@@ -56,7 +54,7 @@ describe("LayoutRenderer", () => {
   })
 
   test("renders error for unknown panel", () => {
-    const node = { type: "panel" as const, id: "unknown" }
+    const node = { panel: "unknown" }
     const { lastFrame } = render(
       <LayoutRenderer
         node={node}
@@ -73,10 +71,8 @@ describe("LayoutRenderer", () => {
 
   test("renders error for unknown layout", () => {
     const node = {
-      type: "layout" as const,
       layout: "unknown",
-      props: {},
-      children: []
+      content: []
     }
     const { lastFrame } = render(
       <LayoutRenderer
@@ -94,12 +90,12 @@ describe("LayoutRenderer", () => {
 
   test("propagates dimensions through split layout", () => {
     const node = {
-      type: "layout" as const,
       layout: "split",
-      props: { ratio: 0.5, direction: "horizontal" },
-      children: [
-        { type: "panel" as const, id: "overview" },
-        { type: "panel" as const, id: "agents" }
+      ratio: 0.5,
+      direction: "horizontal",
+      content: [
+        { panel: "overview" },
+        { panel: "agents" }
       ]
     }
     const { lastFrame } = render(

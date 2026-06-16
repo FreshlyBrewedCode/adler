@@ -8,26 +8,19 @@ import { HelpModal } from "./components/HelpModal"
 import { LayoutRenderer } from "./core/LayoutRenderer"
 import { registerPanels } from "./components/panels"
 import { registerLayouts } from "./components/layouts"
-import type { TreeNode } from "./core/types"
+import type { ContentNode, TreeNode } from "./core/types"
+import { normalizeLayout } from "./core/normalizeLayout"
 
-const defaultLayout: TreeNode = {
-  type: "layout",
+const defaultLayout: ContentNode = {
   layout: "tabs",
-  props: {},
-  children: [
-    { type: "panel", id: "overview" },
-    { type: "panel", id: "context" },
-    { type: "panel", id: "agents" },
-    { type: "panel", id: "traces" },
-    { type: "panel", id: "logs" }
-  ]
+  content: ["overview", "context", "agents", "traces", "logs"]
 }
 
 function resolveFocusedPanel(node: TreeNode, focusPath: number[]): string | null {
-  if (node.type === "panel") return node.id
+  if ("panel" in node) return (node as { panel: string }).panel
   if (focusPath.length === 0) return null
   const childIndex = focusPath[0]
-  const child = node.children[childIndex]
+  const child = (node.content as TreeNode[])[childIndex]
   if (!child) return null
   return resolveFocusedPanel(child, focusPath.slice(1))
 }
@@ -36,7 +29,7 @@ export function App({ sessionId }: { sessionId: string }) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const [isHelpOpen, setIsHelpOpen] = useState(false)
   const [focusPath, setFocusPath] = useState<number[]>([0])
-  const [layout] = useState<TreeNode>(defaultLayout)
+  const [layout] = useState<TreeNode>(() => normalizeLayout(defaultLayout) as TreeNode)
   const { exit } = useApp()
   const { stdout } = useStdout()
 
