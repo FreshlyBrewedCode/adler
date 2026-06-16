@@ -25,11 +25,11 @@ function resolveFocusedPanel(node: TreeNode, focusPath: number[]): string | null
   return resolveFocusedPanel(child, focusPath.slice(1))
 }
 
-export function App({ sessionId }: { sessionId: string }) {
+export function App({ sessionId, layout: layoutProp }: { sessionId: string; layout?: ContentNode }) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const [isHelpOpen, setIsHelpOpen] = useState(false)
   const [focusPath, setFocusPath] = useState<number[]>([0])
-  const [layout] = useState<TreeNode>(() => normalizeLayout(defaultLayout))
+  const [layout] = useState<TreeNode>(() => normalizeLayout(layoutProp ?? defaultLayout))
   const { exit } = useApp()
   const { stdout } = useStdout()
 

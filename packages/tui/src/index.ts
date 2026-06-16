@@ -3,6 +3,7 @@ import React from "react"
 import { App } from "./app"
 import { readFileSync, existsSync } from "fs"
 import { join } from "path"
+import { loadConfig } from "./loadConfig"
 
 function resolveSessionId(): string | undefined {
   if (process.env.ADLER_SESSION) return process.env.ADLER_SESSION
@@ -19,6 +20,10 @@ export async function runTui(): Promise<void> {
     console.error("No active session. Run `adler new` first.")
     process.exit(1)
   }
-  const { waitUntilExit } = render(React.createElement(App, { sessionId }))
+
+  const config = await loadConfig(process.cwd())
+  const layout = config.tui?.layout
+
+  const { waitUntilExit } = render(React.createElement(App, { sessionId, layout }))
   await waitUntilExit()
 }
