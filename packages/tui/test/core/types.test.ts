@@ -23,7 +23,7 @@ describe("core types", () => {
         }
       ]
     }
-    expect("layout" in node.content[0]).toBe(true)
+    expect("layout" in (node.content[0] as object)).toBe(true)
     expect((node.content[0] as LayoutNode).layout).toBe("tabs")
   })
 
