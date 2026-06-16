@@ -1,5 +1,5 @@
 import { Box, Text } from "ink"
-import type { TreeNode, LayoutNode } from "./types"
+import type { TreeNode, LayoutNode, PanelNode } from "./types"
 import { PanelRegistry } from "./PanelRegistry"
 import { LayoutRegistry } from "./LayoutRegistry"
 import { PanelChrome } from "../components/PanelChrome"
@@ -26,7 +26,7 @@ export function LayoutRenderer({
   onFocusChange,
 }: LayoutRendererProps) {
   if ("panel" in node) {
-    const panelNode = node as { panel: string }
+    const panelNode = node as PanelNode
     const panel = PanelRegistry.get(panelNode.panel)
     if (!panel) {
       return (
@@ -59,8 +59,8 @@ export function LayoutRenderer({
     let childHeight = height
 
     if (layoutNode.layout === "split") {
-      const ratio = (layoutNode.ratio as number) ?? 0.5
-      const direction = (layoutNode.direction as "horizontal" | "vertical") ?? "horizontal"
+      const ratio = typeof layoutNode.ratio === "number" ? layoutNode.ratio : 0.5
+      const direction = layoutNode.direction === "vertical" ? "vertical" : "horizontal"
       if (direction === "horizontal") {
         childWidth = i === 0 ? Math.floor(width * ratio) : width - Math.floor(width * ratio)
       } else {
