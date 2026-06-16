@@ -5,7 +5,6 @@ import type { AdlerConfig } from "@adler/sdk"
 import type { DaemonLogger } from "./logger"
 
 const GLOBAL_CONFIG_STEMS = [
-  join(homedir(), ".config/adler/adler.tsx"),
   join(homedir(), ".config/adler/adler.ts"),
 ]
 
@@ -14,7 +13,7 @@ function findConfigFile(candidates: string[]): string | null {
 }
 
 function projectConfigCandidates(dir: string): string[] {
-  return [join(dir, ".adler/adler.tsx"), join(dir, ".adler/adler.ts")]
+  return [join(dir, ".adler/adler.ts")]
 }
 
 export class ConfigLoader {
