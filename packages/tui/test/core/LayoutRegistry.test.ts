@@ -23,4 +23,12 @@ describe("LayoutRegistry", () => {
   test("get returns undefined for unknown id", () => {
     expect(LayoutRegistry.get("unknown")).toBeUndefined()
   })
+
+  test("getAll returns all layouts", () => {
+    LayoutRegistry.register({ id: "a", component: () => null })
+    LayoutRegistry.register({ id: "b", component: () => null })
+    const all = LayoutRegistry.getAll()
+    expect(all).toHaveLength(2)
+    expect(all.map(l => l.id)).toEqual(["a", "b"])
+  })
 })

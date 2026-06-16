@@ -14,6 +14,10 @@ export const LayoutRegistry = {
     return layouts.get(id)
   },
 
+  getAll(): LayoutDefinition[] {
+    return Array.from(layouts.values())
+  },
+
   clear(): void {
     layouts.clear()
   }
