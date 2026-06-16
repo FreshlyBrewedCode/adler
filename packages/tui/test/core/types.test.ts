@@ -4,29 +4,27 @@ import type { PanelDefinition, LayoutDefinition, TreeNode, LayoutNode, PanelNode
 describe("core types", () => {
   test("TreeNode array can contain both LayoutNode and PanelNode", () => {
     const nodes: TreeNode[] = [
-      { type: "layout", layout: "tabs", props: {}, children: [] },
-      { type: "panel", id: "overview" }
+      { layout: "tabs", content: [] },
+      { panel: "overview" }
     ]
-    expect(nodes[0].type).toBe("layout")
-    expect(nodes[1].type).toBe("panel")
+    expect("layout" in nodes[0]).toBe(true)
+    expect("panel" in nodes[1]).toBe(true)
   })
 
-  test("LayoutNode can contain nested LayoutNode children", () => {
+  test("LayoutNode can contain nested LayoutNode content", () => {
     const node: LayoutNode = {
-      type: "layout",
       layout: "split",
-      props: { direction: "horizontal" },
-      children: [
+      direction: "horizontal",
+      content: [
         {
-          type: "layout",
           layout: "tabs",
-          props: { tabPosition: "top" },
-          children: [{ type: "panel", id: "nested" }]
+          tabPosition: "top",
+          content: [{ panel: "nested" }]
         }
       ]
     }
-    expect(node.children[0].type).toBe("layout")
-    expect((node.children[0] as LayoutNode).layout).toBe("tabs")
+    expect("layout" in node.content[0]).toBe(true)
+    expect((node.content[0] as LayoutNode).layout).toBe("tabs")
   })
 
   test("PanelDefinition hotkeys are optional and can be omitted", () => {
