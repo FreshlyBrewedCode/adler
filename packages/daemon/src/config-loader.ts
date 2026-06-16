@@ -4,7 +4,18 @@ import { homedir } from "os"
 import type { AdlerConfig } from "@adler/sdk"
 import type { DaemonLogger } from "./logger"
 
-const GLOBAL_CONFIG = join(homedir(), ".config/adler/adler.ts")
+const GLOBAL_CONFIG_STEMS = [
+  join(homedir(), ".config/adler/adler.tsx"),
+  join(homedir(), ".config/adler/adler.ts"),
+]
+
+function findConfigFile(candidates: string[]): string | null {
+  return candidates.find(existsSync) ?? null
+}
+
+function projectConfigCandidates(dir: string): string[] {
+  return [join(dir, ".adler/adler.tsx"), join(dir, ".adler/adler.ts")]
+}
 
 export class ConfigLoader {
   private cache = new Map<string, AdlerConfig>()
@@ -20,7 +31,10 @@ export class ConfigLoader {
     }
 
     const config = await this.resolveConfig(absDir)
-    const files = [GLOBAL_CONFIG, join(absDir, ".adler/adler.ts")].filter(existsSync)
+    const files = [
+      findConfigFile(GLOBAL_CONFIG_STEMS),
+      findConfigFile(projectConfigCandidates(absDir)),
+    ].filter((f): f is string => f !== null)
     if (Object.keys(config).length === 0 && files.length === 0) {
       return config
     }
@@ -32,9 +46,8 @@ export class ConfigLoader {
   private async resolveConfig(dir: string): Promise<AdlerConfig> {
     let globalConfig: AdlerConfig = {}
     let projectConfig: AdlerConfig = {}
-    const globalPath = existsSync(GLOBAL_CONFIG) ? GLOBAL_CONFIG : null
-    const projectConfigPath = join(dir, ".adler/adler.ts")
-    const projectPath = existsSync(projectConfigPath) ? projectConfigPath : null
+    const globalPath = findConfigFile(GLOBAL_CONFIG_STEMS)
+    const projectPath = findConfigFile(projectConfigCandidates(dir))
 
     if (globalPath) {
       try {
@@ -70,7 +83,10 @@ export class ConfigLoader {
     const absDir = resolve(dir)
     if (this.watchers.has(absDir)) return
 
-    const files = [GLOBAL_CONFIG, join(dir, ".adler/adler.ts")].filter(existsSync)
+    const files = [
+      findConfigFile(GLOBAL_CONFIG_STEMS),
+      findConfigFile(projectConfigCandidates(dir)),
+    ].filter((f): f is string => f !== null)
     if (files.length === 0) return
 
     const fileWatchers = files.map((file) =>

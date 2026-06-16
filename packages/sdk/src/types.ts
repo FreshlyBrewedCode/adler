@@ -93,11 +93,35 @@ export type ContextFilter = {
   label?: string
 }
 
+export interface LayoutNode {
+  type: "layout"
+  layout: string
+  props: Record<string, unknown>
+  children: TreeNode[]
+}
+
+export interface PanelNode {
+  type: "panel"
+  id: string
+}
+
+export type TreeNode = LayoutNode | PanelNode
+
+export interface LayoutPrimitives {
+  Layout: (props: { type: string; children?: TreeNode[]; [key: string]: unknown }) => TreeNode
+  Panel: (props: { id: string; [key: string]: unknown }) => TreeNode
+}
+
+export interface TuiConfig {
+  layout?: (primitives: LayoutPrimitives) => TreeNode
+}
+
 export interface AdlerConfig {
   agent?: {
     agents?: Record<string, AgentConfig>
     attach?: AttachConfig
   }
+  tui?: TuiConfig
 }
 
 export interface AgentConfig {
