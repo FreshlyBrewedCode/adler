@@ -22,16 +22,16 @@ export interface PanelDefinition {
   hotkeys?: HotkeyDefinition[]
 }
 
+export type ContentNode = LayoutNode | PanelNode | string
+
 export interface LayoutNode {
-  type: "layout"
   layout: string
-  props: Record<string, unknown>
-  children: TreeNode[]
+  content: ContentNode[]
+  [key: string]: unknown
 }
 
 export interface PanelNode {
-  type: "panel"
-  id: string
+  panel: string
 }
 
 export type TreeNode = LayoutNode | PanelNode
