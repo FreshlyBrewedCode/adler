@@ -4,5 +4,6 @@ bun.lock
 .env
 .DS_Store
 dist/
-.adler/
+.adler/.session
 tsconfig-check.json
+.worktrees/
