@@ -9,16 +9,16 @@ function levelFromType(type: string): "info" | "warn" | "error" | "other" {
   return "other"
 }
 
-export function LogLine({ event, isSelected }: { event: Event; isSelected: boolean }) {
+export function LogLine({ event, isSelected, width }: { event: Event; isSelected: boolean; width?: number }) {
   const level = levelFromType(event.type)
   const color = Theme.level[level]
   const message = typeof event.data?.message === "string" ? event.data.message : JSON.stringify(event.data)
   return (
-    <Box backgroundColor={isSelected ? "gray" : undefined}>
+    <Box width={width} overflow="hidden">
       <Text dimColor>{new Date(event.timestamp).toLocaleTimeString()} </Text>
       <Text backgroundColor={color} color="black"> {level.toUpperCase()} </Text>
       <Text> {event.type}</Text>
-      <Text dimColor> {message}</Text>
+      <Text dimColor wrap="truncate"> {message}</Text>
     </Box>
   )
 }

@@ -41,6 +41,10 @@ export function LayoutRenderer({
     const isFocused =
       currentPath.length === focusPath.length &&
       currentPath.every((val, idx) => val === focusPath[idx])
+    // PanelChrome consumes: 2 border rows + 2 padding rows + 1 title row = 5 rows
+    // PanelChrome consumes: 2 border cols + 2 padding cols each side = 4 cols
+    const innerHeight = Math.max(1, height - 5)
+    const innerWidth = Math.max(1, width - 4)
     return (
       <PanelChrome
         title={panel.title}
@@ -48,7 +52,7 @@ export function LayoutRenderer({
         height={height}
         isFocused={isFocused}
       >
-        <panel.component state={state} dispatch={dispatch} width={width} height={Math.max(1, height - 1)} />
+        <panel.component state={state} dispatch={dispatch} width={innerWidth} height={innerHeight} />
       </PanelChrome>
     )
   }
@@ -69,7 +73,10 @@ export function LayoutRenderer({
     let childWidth = width
     let childHeight = height
 
-    if (layoutNode.layout === "split") {
+    if (layoutNode.layout === "tabs") {
+      // Tabs layout has a 1-row tab bar
+      childHeight = Math.max(1, height - 1)
+    } else if (layoutNode.layout === "split") {
       const ratio = typeof layoutNode.ratio === "number" ? layoutNode.ratio : 0.5
       const direction = layoutNode.direction === "vertical" ? "vertical" : "horizontal"
       if (direction === "horizontal") {

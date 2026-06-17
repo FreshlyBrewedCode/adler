@@ -102,8 +102,9 @@ export function LogsPanel({ state, width, height }: PanelProps) {
         <SelectList
           items={display}
           selectedIndex={safeIndex}
+          height={Math.max(1, height - 2)}
           renderItem={(event, i, isSelected) => (
-            <LogLine event={event as Event} isSelected={isSelected} />
+            <LogLine event={event as Event} isSelected={isSelected} width={width} />
           )}
         />
       </Box>
