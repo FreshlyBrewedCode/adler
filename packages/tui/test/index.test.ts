@@ -35,9 +35,6 @@ mock.module("@adler/sdk", () => ({
   }),
   DAEMON_SESSION_ID: "daemon",
 }))
-mock.module("../src/loadConfig", () => ({
-  loadConfig: mock(() => Promise.resolve({ tui: undefined })),
-}))
 
 // Dynamic import after mocks are registered, so Bun's module loader sees the mocks
 // when resolving ink/jsx-dev-runtime from app.tsx
