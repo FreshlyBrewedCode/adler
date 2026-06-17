@@ -47,6 +47,7 @@ describe("runTui", () => {
   let originalEnv: string | undefined
   let writtenBytes: string[]
   let originalWrite: typeof process.stdout.write
+  let mockExit: ReturnType<typeof spyOn>
 
   beforeEach(() => {
     _resetAltScreenForTesting()
@@ -59,12 +60,15 @@ describe("runTui", () => {
       if (typeof chunk === "string") writtenBytes.push(chunk)
       return true
     }) as typeof process.stdout.write
+    // Prevent process.exit(0) from actually terminating the test process
+    mockExit = spyOn(process, "exit").mockImplementation((() => {}) as any)
     mockRender.mockClear()
     mockWaitUntilExit.mockClear()
   })
 
   afterEach(() => {
     process.stdout.write = originalWrite
+    mockExit.mockRestore()
     if (originalEnv !== undefined) {
       process.env.ADLER_SESSION = originalEnv
     } else {
@@ -95,23 +99,24 @@ describe("runTui", () => {
     expect(writtenBytes[0]).toBe("\x1b[?1049l")
   })
 
+  test("calls process.exit(0) after waitUntilExit resolves", async () => {
+    await runTui()
+    expect(mockExit).toHaveBeenCalledWith(0)
+  })
+
   test("SIGINT handler calls process.exit(0)", async () => {
-    const mockExit = spyOn(process, "exit").mockImplementation((() => {}) as any)
     await runTui()
     const listeners = process.listeners("SIGINT")
     const handler = listeners[listeners.length - 1] as () => void
     handler()
     expect(mockExit).toHaveBeenCalledWith(0)
-    mockExit.mockRestore()
   })
 
   test("SIGTERM handler calls process.exit(0)", async () => {
-    const mockExit = spyOn(process, "exit").mockImplementation((() => {}) as any)
     await runTui()
     const listeners = process.listeners("SIGTERM")
     const handler = listeners[listeners.length - 1] as () => void
     handler()
     expect(mockExit).toHaveBeenCalledWith(0)
-    mockExit.mockRestore()
   })
 })

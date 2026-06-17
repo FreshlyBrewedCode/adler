@@ -57,4 +57,5 @@ export async function runTui(): Promise<void> {
 
   const { waitUntilExit } = render(React.createElement(App, { sessionId, layout }))
   await waitUntilExit()
+  process.exit(0)
 }
