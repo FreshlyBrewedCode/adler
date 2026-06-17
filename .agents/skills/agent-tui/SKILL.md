@@ -39,6 +39,11 @@ adler needs an active session to launch the tui
 - you can also check if there is a session file at `.adler/.session` which contains the active session id
 - create new session with `bun run adler new` if needed
 
+you can run adler with agent-tui by running:
+```bash
+agent-tui run --cwd . bun -- run adler 
+```
+
 # Terminal Automation Mastery
 
 ## Prerequisites
