@@ -5,6 +5,7 @@ import { sessionCmd } from "./commands/session"
 import { daemonCmd } from "./commands/daemon"
 import { agentCmd } from "./commands/agent"
 import { contextCmd } from "./commands/context"
+import { spanCmd } from "./commands/span"
 import { AdlerCliError } from "./error"
 
 export function buildCli(): Command {
@@ -23,6 +24,7 @@ export function buildCli(): Command {
   program.addCommand(daemonCmd)
   program.addCommand(agentCmd)
   program.addCommand(contextCmd)
+  program.addCommand(spanCmd)
 
   return program
 }

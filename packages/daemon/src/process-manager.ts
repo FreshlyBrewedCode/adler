@@ -182,7 +182,7 @@ export class ProcessManager {
 
     this.onEvent({
       type: "span.started",
-      payload: { span_id: span.id, kind: "agent", name: data.name },
+      payload: { session_id: data.sessionId, span_id: span.id, kind: "agent", name: data.name, parent_id: span.parent_id },
     })
 
     return span
@@ -281,7 +281,7 @@ export class ProcessManager {
     this.inactivity?.removeAgent()
     this.onEvent({
       type: status === "done" ? "span.finished" : "span.failed",
-      payload: { span_id: spanId, exit_code: exitCode },
+      payload: { session_id: span.session_id, span_id: spanId, exit_code: exitCode },
     })
   }
 

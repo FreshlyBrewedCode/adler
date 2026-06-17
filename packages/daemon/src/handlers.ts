@@ -53,10 +53,16 @@ export async function handleCommand(ctx: HandlerContext, type: string, payload: 
     }
 
     case "agent.wait": {
-      const { name } = payload as { name: string }
-      const spans = await ctx.storage.listAllSpans()
-      const span = spans.find(s => s.name === name)
-      if (!span) throw new Error(`Agent not found: ${name}`)
+      const { name, id } = payload as { name?: string; id?: string }
+      if (!name && !id) throw new Error("Either name or id must be provided")
+      let span
+      if (id) {
+        span = await ctx.storage.getSpan(id)
+      } else {
+        const spans = await ctx.storage.listAllSpans()
+        span = spans.find(s => s.name === name)
+      }
+      if (!span) throw new Error(id ? `Agent not found: ${id}` : `Agent not found: ${name}`)
       const maxWaitMs = 5 * 60 * 1000 // 5 minutes
       const start = Date.now()
       while (true) {
@@ -66,17 +72,23 @@ export async function handleCommand(ctx: HandlerContext, type: string, payload: 
           return current
         }
         if (Date.now() - start > maxWaitMs) {
-          throw new Error(`Agent ${name} did not complete within 5 minutes`)
+          throw new Error(`Agent ${id ?? name} did not complete within 5 minutes`)
         }
         await new Promise(r => setTimeout(r, 500))
       }
     }
 
     case "agent.status": {
-      const { name } = payload as { name: string }
-      const spans = await ctx.storage.listAllSpans()
-      const span = spans.find(s => s.name === name)
-      if (!span) throw new Error(`Agent not found: ${name}`)
+      const { name, id } = payload as { name?: string; id?: string }
+      if (!name && !id) throw new Error("Either name or id must be provided")
+      let span
+      if (id) {
+        span = await ctx.storage.getSpan(id)
+      } else {
+        const spans = await ctx.storage.listAllSpans()
+        span = spans.find(s => s.name === name)
+      }
+      if (!span) throw new Error(id ? `Agent not found: ${id}` : `Agent not found: ${name}`)
       return span.status
     }
 
@@ -89,6 +101,18 @@ export async function handleCommand(ctx: HandlerContext, type: string, payload: 
     case "agent.attach": {
       const { span_id } = payload as { span_id: string }
       return { span_id, message: "Use raw socket for attach" }
+    }
+
+    case "span.get": {
+      const { id } = payload as { id: string }
+      const span = await ctx.storage.getSpan(id)
+      if (!span) throw new Error(`Span not found: ${id}`)
+      return span
+    }
+
+    case "span.list": {
+      const { session_id } = payload as { session_id: string }
+      return ctx.storage.listSpans(session_id)
     }
 
     case "span.update": {
@@ -111,7 +135,7 @@ export async function handleCommand(ctx: HandlerContext, type: string, payload: 
         description: data.description ?? null,
         value: data.value,
       })
-      ctx.broadcast(data.session_id, { type: "context.added", payload: { item_id: item.id, type: item.type, label: item.label } })
+      ctx.broadcast(data.session_id, { type: "context.added", payload: item })
       return item
     }
 

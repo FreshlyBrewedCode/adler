@@ -21,12 +21,14 @@ export interface Client {
   }
   agent: {
     run(data: { sessionId: string; agentType: string; prompt: string; name?: string; parentSpanId?: string }): Promise<Span>
-    wait(data: { name: string }): Promise<Span>
-    status(data: { name: string }): Promise<SpanStatus>
+    wait(data: { name: string } | { id: string }): Promise<Span>
+    status(data: { name: string } | { id: string }): Promise<SpanStatus>
     list(): Promise<Span[]>
     attach(nameOrId: string): Promise<void>
   }
   span: {
+    get(id: string): Promise<Span>
+    list(sessionId: string): Promise<Span[]>
     update(id: string, data: Record<string, unknown>, options?: { merge?: boolean }): Promise<void>
   }
   context: {
@@ -158,6 +160,8 @@ export function createClient(socketPath: string = SOCKET_PATH): Client {
       attach: (nameOrId) => send("agent.attach", { span_id: nameOrId }),
     },
     span: {
+      get: (id) => send("span.get", { id }),
+      list: (sessionId) => send("span.list", { session_id: sessionId }),
       update: (id, data, options) => send("span.update", { id, data, options }),
     },
     context: {
