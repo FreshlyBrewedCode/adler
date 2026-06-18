@@ -17,7 +17,6 @@ export function HelpModal({ onClose }: { onClose: () => void }) {
     >
       <box
         flexDirection={"column"}
-        width={60}
       >
         <text content="HOTKEYS" />
         <box flexDirection={"column"} marginTop={1} >
