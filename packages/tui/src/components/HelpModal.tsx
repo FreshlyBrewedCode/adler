@@ -7,19 +7,20 @@ export function HelpModal({ onClose }: { onClose: () => void }) {
     <scrollbox
       border={true}
       borderStyle={"rounded"}
-      borderColor={Theme.primary}
+      borderColor={Theme.border}
       padding={1}
       width={60}
       maxHeight={20}
       overflow="scroll"
       shouldFill={true}
       backgroundColor={Theme.background}
+      title="Hotkeys"
+      titleColor={Theme.foreground}
     >
       <box
         style={{ flexDirection: "column", width: "100%", height: "auto" }}
       >
-        <text content="HOTKEYS" />
-        <box style={{ flexDirection: "column", marginTop: 1 }} >
+        <box style={{ flexDirection: "column" }} >
           <text content="--- GLOBAL ---" />
           <text content="tab / shift+tab — next / prev focus" />
           <text content="q / ctrl+c — quit" />

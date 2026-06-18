@@ -9,8 +9,8 @@ export function Footer({ focusedPanelId }: { focusedPanelId: string | null }) {
     "q quit",
   ]
   return (
-    <box style={{ height: 1, justifyContent: "space-between" }}>
-      <box>
+    <box style={{ flexDirection: "row", height: 1, width: "100%", justifyContent: "space-between" }}>
+      <box style={{ flexDirection: "row" }}>
         {hotkeys.map((hk, i) => (
           <box key={i} style={{ marginRight: 1 }}>
             <text bg={Theme.footer.badgeBg} fg={Theme.footer.badgeText}>
