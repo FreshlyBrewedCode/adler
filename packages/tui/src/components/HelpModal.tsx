@@ -1,33 +1,35 @@
-import { Box, Text } from "ink"
 import { PanelRegistry } from "../core/PanelRegistry"
 import { Theme } from "../theme"
 
 export function HelpModal({ onClose }: { onClose: () => void }) {
   const panels = PanelRegistry.getAll()
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="round"
-      borderColor={Theme.primary}
-      padding={1}
-      width={60}
-      height={20}
+    <box
+      style={{
+        flexDirection: "column",
+        border: true,
+        borderStyle: "rounded",
+        borderColor: Theme.primary,
+        padding: 1,
+        width: 60,
+        height: 20,
+      }}
     >
-      <Text bold color={Theme.primary}>Hotkeys</Text>
-      <Box flexDirection="column" marginTop={1}>
-        <Text bold underline>Global</Text>
-        <Text>tab / shift+tab — next / prev focus</Text>
-        <Text>q / ctrl+c — quit</Text>
-        <Text>? — toggle help</Text>
-      </Box>
+      <text fg={Theme.primary}><b>Hotkeys</b></text>
+      <box style={{ flexDirection: "column", marginTop: 1 }}>
+        <text><b><u>Global</u></b></text>
+        <text>tab / shift+tab — next / prev focus</text>
+        <text>q / ctrl+c — quit</text>
+        <text>? — toggle help</text>
+      </box>
       {panels.map(panel => (
-        <Box key={panel.id} marginTop={1} flexDirection="column">
-          <Text bold underline color={Theme.primary}>{panel.title}</Text>
+        <box key={panel.id} style={{ marginTop: 1, flexDirection: "column" }}>
+          <text fg={Theme.primary}><b><u>{panel.title}</u></b></text>
           {panel.hotkeys?.map(hk => (
-            <Text key={hk.key}>{hk.key} — {hk.description}</Text>
+            <text key={hk.key}>{hk.key} — {hk.description}</text>
           ))}
-        </Box>
+        </box>
       ))}
-    </Box>
+    </box>
   )
 }

@@ -1,4 +1,3 @@
-import { Box, Text } from "ink"
 import type { Session } from "@adler/sdk"
 import { Theme } from "../theme"
 
@@ -7,13 +6,13 @@ export function Header({ session }: { session: Session | null }) {
     ? Theme.header.status.active
     : Theme.header.status.completed
   return (
-    <Box height={1}>
-      <Text bold>adler</Text>
-      <Text dimColor> · session: </Text>
-      <Text color={Theme.primary}>{session?.id.slice(0, 6)}</Text>
-      <Text dimColor> · </Text>
-      <Text color={statusColor}>{session?.status}</Text>
-      <Text dimColor> · {session?.working_dir}</Text>
-    </Box>
+    <box style={{ height: 1 }}>
+      <text><b>adler</b></text>
+      <text fg="#666"> · session: </text>
+      <text fg={Theme.primary}>{session?.id.slice(0, 6)}</text>
+      <text fg="#666"> · </text>
+      <text fg={statusColor}>{session?.status}</text>
+      <text fg="#666"> · {session?.working_dir}</text>
+    </box>
   )
 }

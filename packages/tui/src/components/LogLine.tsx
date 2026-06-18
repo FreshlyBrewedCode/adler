@@ -1,4 +1,3 @@
-import { Box, Text } from "ink"
 import type { Event } from "@adler/sdk"
 import { Theme } from "../theme"
 
@@ -14,11 +13,11 @@ export function LogLine({ event, isSelected, width }: { event: Event; isSelected
   const color = Theme.level[level]
   const message = typeof event.data?.message === "string" ? event.data.message : JSON.stringify(event.data)
   return (
-    <Box width={width} overflow="hidden">
-      <Text dimColor>{new Date(event.timestamp).toLocaleTimeString()} </Text>
-      <Text backgroundColor={color} color="black"> {level.toUpperCase()} </Text>
-      <Text> {event.type}</Text>
-      <Text dimColor wrap="truncate"> {message}</Text>
-    </Box>
+    <box style={{ width, overflow: "hidden" }}>
+      <text fg="#666">{new Date(event.timestamp).toLocaleTimeString()} </text>
+      <text bg={color} fg="black"> {level.toUpperCase()} </text>
+      <text> {event.type}</text>
+      <text fg="#666"> {message}</text>
+    </box>
   )
 }

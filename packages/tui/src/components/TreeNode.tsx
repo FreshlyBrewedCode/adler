@@ -1,4 +1,3 @@
-import { Box, Text } from "ink"
 import type { Span } from "@adler/sdk"
 import { Theme } from "../theme"
 
@@ -14,11 +13,11 @@ export function TreeNode({
   const statusColor = Theme.status[span.status as keyof typeof Theme.status] ?? Theme.muted
   const indicator = span.kind === "agent" ? "●" : "○"
   return (
-    <Box backgroundColor={isSelected ? "gray" : undefined}>
-      <Text>{"  ".repeat(depth)}</Text>
-      <Text color={statusColor}>{indicator} </Text>
-      <Text>{span.name}</Text>
-      <Text dimColor> {span.status}</Text>
-    </Box>
+    <box style={{ backgroundColor: isSelected ? "gray" : undefined }}>
+      <text>{"  ".repeat(depth)}</text>
+      <text fg={statusColor}>{indicator} </text>
+      <text>{span.name}</text>
+      <text fg="#666"> {span.status}</text>
+    </box>
   )
 }
