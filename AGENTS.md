@@ -6,23 +6,19 @@ Agent orchestrator CLI with a TUI dashboard ("Eagle eyes on your agents"). Early
 
 **Bun** — `bun.lock` is in `.gitignore` and not committed. Use `bun` for all installs and scripts.
 
-## Commands
+## Running adler-cli
 
-| Purpose | Command |
-|---|---|
-| Run all tests | `bun test` (from root) |
-| Run the CLI | `bun run adler` or `bun run packages/cli/src/index.ts` |
-| Start daemon manually | `bun src/index.ts` (from `packages/daemon`) |
+- Run from root with `bun run adler`
+- `adler` with no arguments opens the TUI — that is intentional.
 
-There is **no build step** for development. Bun executes TypeScript source directly.
+## Tests, Lint & typecheck
 
-## Lint & typecheck
+- `bun test` - all packages and tests use buns builtin test runner
+- `bun lint` — Biome (`biome.json`)
+- `bun typecheck` — `tsgo` (`@typescript/native-preview`)
+- Both root scripts delegate to all workspace packages via `--filter='*'`. They also exist per package.
 
-- `bun run lint` — Biome (`biome.json`): tabs, double quotes, recommended rules. Per-package: `biome check --fix .`
-- `bun run typecheck` — `tsgo` (`@typescript/native-preview`). Per-package: `tsgo --noEmit`
-- Both root scripts delegate to all workspace packages via `--filter='*'`.
-
-`adler` with no arguments opens the TUI — that is intentional.
+Important: Always run tests, lint and typecheck at the end of a coding task
 
 ## Monorepo structure
 
@@ -55,8 +51,5 @@ Workspace: `packages/*` and `packages/plugins/*` (plugins dir does not yet exist
 ## Workflow conventions
 
 - Git worktrees are the standard isolation strategy; stored at `.worktrees/<branch-name>` (gitignored). See the `using-git-worktrees` skill.
-- For parallel subagents: spawn all → wait all → read all. Never `wait` before all agents have been `run`. See the `using-adler-subagents` skill.
-- Always pass `--name` to `adler agent run` — unnamed agents get auto-generated IDs that make `wait`/`read` harder to use.
-- `adler new` is required before `adler agent run` — an active session must exist first.
 
 
