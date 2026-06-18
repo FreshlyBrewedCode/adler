@@ -2,8 +2,9 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "jsx": "react-jsx",
-    "jsxImportSource": "ink",
-    "outDir": "./dist"
+    "jsxImportSource": "@opentui/react",
+    "lib": ["ESNext", "DOM"],
+    "strict": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "test/**/*"]
 }
