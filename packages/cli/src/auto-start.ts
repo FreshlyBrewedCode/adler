@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import {
+	closeSync,
 	existsSync,
 	mkdirSync,
 	openSync,
@@ -57,6 +58,7 @@ export async function ensureDaemon(): Promise<void> {
 		stdio: ["ignore", "ignore", logFd],
 	});
 	proc.unref();
+	closeSync(logFd);
 
 	let spawnError: Error | null = null;
 	let exitCode: number | null = null;
