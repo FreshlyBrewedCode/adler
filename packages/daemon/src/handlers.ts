@@ -1,4 +1,10 @@
-import type { ContextItemType, SessionStatus, Span, Storage } from "@adlr/sdk";
+import type {
+	ContextItemType,
+	CreateSpanInput,
+	SessionStatus,
+	Span,
+	Storage,
+} from "@adlr/sdk";
 import { DAEMON_SESSION_ID } from "@adlr/sdk";
 import type { ProcessManager } from "./process-manager";
 
@@ -150,6 +156,42 @@ export async function handleCommand(
 			if (!existing) throw new Error(`Span not found: ${id}`);
 			const updatedData = options?.merge ? { ...existing.data, ...data } : data;
 			await ctx.storage.updateSpan(id, { data: updatedData });
+			return { success: true };
+		}
+
+		case "span.create": {
+			const data = payload as CreateSpanInput;
+			const span = await ctx.storage.createSpan(data);
+			ctx.broadcast(span.session_id, {
+				type: "span.created",
+				payload: {
+					session_id: span.session_id,
+					span_id: span.id,
+					kind: span.kind,
+					name: span.name,
+					parent_id: span.parent_id,
+				},
+			});
+			return span;
+		}
+
+		case "span.finish": {
+			const { id, data } = payload as {
+				id: string;
+				data?: Record<string, unknown>;
+			};
+			const existing = await ctx.storage.getSpan(id);
+			if (!existing) throw new Error(`Span not found: ${id}`);
+			const updatedData = data ? { ...existing.data, ...data } : existing.data;
+			await ctx.storage.updateSpan(id, {
+				status: "done",
+				finished_at: Date.now(),
+				data: updatedData,
+			});
+			ctx.broadcast(existing.session_id, {
+				type: "span.finished",
+				payload: { session_id: existing.session_id, span_id: id },
+			});
 			return { success: true };
 		}
 

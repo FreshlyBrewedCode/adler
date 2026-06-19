@@ -1,4 +1,4 @@
-import type { Span, SpanStatus, Storage } from "@adlr/sdk";
+import type { AgentSpan, Span, SpanStatus, Storage } from "@adlr/sdk";
 import { getSocketPath } from "@adlr/sdk";
 import type { ConfigLoader } from "./config-loader";
 import type { InactivityTimer } from "./lifecycle";
@@ -219,14 +219,14 @@ export class ProcessManager {
 		const agent = this.agents.get(spanId);
 		if (!agent || agent.exited) return;
 
-		const span = await this.storage.getSpan(spanId);
+		const span = (await this.storage.getSpan(spanId)) as AgentSpan | null;
 		if (!span) return;
 
 		const session = await this.storage.getSession(span.session_id);
 		if (!session) return;
 
 		const config = await this.configLoader.loadConfig(session.working_dir);
-		const agentDef = config.agent?.agents?.[span.data.agent_type as string];
+		const agentDef = config.agent?.agents?.[span.data.agent_type ?? ""];
 		if (!agentDef?.status) return;
 
 		const timeout = agentDef?.interactiveTimeout ?? 3000;
@@ -268,14 +268,14 @@ export class ProcessManager {
 			this.statusIntervals.delete(spanId);
 		}
 
-		const span = await this.storage.getSpan(spanId);
+		const span = (await this.storage.getSpan(spanId)) as AgentSpan | null;
 		if (!span) return;
 
 		const session = await this.storage.getSession(span.session_id);
 		if (!session) return;
 
 		const config = await this.configLoader.loadConfig(session.working_dir);
-		const agentDef = config.agent?.agents?.[span.data.agent_type as string];
+		const agentDef = config.agent?.agents?.[span.data.agent_type ?? ""];
 		let outputData: Record<string, unknown> | null = null;
 
 		if (agentDef?.output) {

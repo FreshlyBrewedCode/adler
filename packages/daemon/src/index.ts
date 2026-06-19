@@ -1,4 +1,4 @@
-import { getDbPath, SQLiteStorage } from "@adlr/sdk";
+import { getDbPath } from "@adlr/sdk";
 import { ConfigLoader } from "./config-loader";
 import {
 	ensureAdlerDir,
@@ -11,6 +11,7 @@ import {
 import { createLogger } from "./logger";
 import { ProcessManager } from "./process-manager";
 import { startServer } from "./server";
+import { SQLiteStorage } from "./sqlite-storage";
 
 async function main() {
 	if (isDaemonRunning()) {
