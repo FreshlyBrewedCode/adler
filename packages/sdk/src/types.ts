@@ -15,25 +15,52 @@ export type CreateSessionInput = {
 export type SpanKind = "agent" | "workflow" | "step" | "hook";
 export type SpanStatus = "pending" | "running" | "done" | "failed" | "blocked";
 
-export interface Span {
+export interface SpanUsage {
+	prompt_tokens?: number;
+	completion_tokens?: number;
+	total_tokens?: number;
+}
+
+export interface AgentSpanData {
+	prompt?: string;
+	agent_type?: string;
+	output?: { type: "text"; content: string } | { type: "file"; path: string };
+	usage?: SpanUsage;
+	pid?: number | null;
+	exit_code?: number | null;
+}
+
+export interface SpanDataMap {
+	agent: AgentSpanData;
+	workflow: Record<string, unknown>;
+	step: Record<string, unknown>;
+	hook: Record<string, unknown>;
+}
+
+export interface BaseSpan<K extends SpanKind = SpanKind> {
 	id: string;
 	session_id: string;
 	parent_id: string | null;
-	kind: SpanKind;
+	kind: K;
 	name: string;
 	status: SpanStatus;
 	started_at: number;
 	finished_at: number | null;
-	data: Record<string, unknown>;
 }
 
-export type CreateSpanInput = {
+export type SpanOf<K extends SpanKind> = BaseSpan<K> & { data: SpanDataMap[K] };
+
+export type AgentSpan = SpanOf<"agent">;
+
+export type Span = SpanOf<SpanKind>;
+
+export type CreateSpanInput<K extends SpanKind = SpanKind> = {
 	session_id: string;
 	parent_id?: string | null;
-	kind: SpanKind;
+	kind: K;
 	name: string;
 	status?: SpanStatus;
-	data?: Record<string, unknown>;
+	data?: SpanDataMap[K];
 };
 
 export type EventType =
@@ -119,16 +146,16 @@ export interface AdlrConfig {
 
 export interface AgentConfig {
 	run?: (ctx: { prompt: string; subagent?: string }) => string;
-	open?: (ctx: { span: Span; proc: ProcContext; $: unknown }) => string;
+	open?: (ctx: { span: AgentSpan; proc: ProcContext; $: unknown }) => string;
 	output?: (ctx: {
-		span: Span;
+		span: AgentSpan;
 		proc: ProcContext;
 		$: unknown;
 	}) => Promise<
 		{ type: "text"; content: string } | { type: "file"; path: string }
 	>;
 	status?: (ctx: {
-		span: Span;
+		span: AgentSpan;
 		currentStatus: SpanStatus;
 		proc: ProcContext;
 		$: unknown;
