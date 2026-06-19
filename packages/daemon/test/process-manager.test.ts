@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { SQLiteStorage } from "@adlr/sdk";
 import { ConfigLoader } from "../src/config-loader";
 // Type guard: AgentProcess must have proc and terminal, not pty
 import type { AgentProcess } from "../src/process-manager";
 import { ProcessManager } from "../src/process-manager";
+import { SQLiteStorage } from "../src/sqlite-storage";
 
 type _Check = AgentProcess extends {
 	proc: Bun.Subprocess;

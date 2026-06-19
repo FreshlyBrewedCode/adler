@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { DAEMON_SESSION_ID, SQLiteStorage } from "@adlr/sdk";
+import { DAEMON_SESSION_ID } from "@adlr/sdk";
 import { createLogger } from "../src/logger";
+import { SQLiteStorage } from "../src/sqlite-storage";
 
 describe("createLogger", () => {
 	let storage: SQLiteStorage;

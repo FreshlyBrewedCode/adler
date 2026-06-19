@@ -1,4 +1,4 @@
-import type { Span, SpanStatus, Storage } from "@adlr/sdk";
+import type { AgentSpan, Span, SpanStatus, Storage } from "@adlr/sdk";
 import { getSocketPath } from "@adlr/sdk";
 import type { ConfigLoader } from "./config-loader";
 import type { InactivityTimer } from "./lifecycle";
@@ -233,7 +233,7 @@ export class ProcessManager {
 		agent.stdoutIdle = Date.now() - agent.lastStdoutTime > timeout;
 
 		const result = await agentDef.status({
-			span,
+			span: span as AgentSpan,
 			currentStatus: agent.status,
 			proc: { stdoutIdle: agent.stdoutIdle, lastStdout: agent.stdoutBuffer },
 			$: {} as unknown,
@@ -281,7 +281,7 @@ export class ProcessManager {
 		if (agentDef?.output) {
 			try {
 				const output = await agentDef.output({
-					span,
+					span: span as AgentSpan,
 					proc: {
 						stdoutIdle: agent.stdoutIdle,
 						lastStdout: agent.stdoutBuffer,

@@ -9,11 +9,11 @@ import {
 import { connect } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { SQLiteStorage } from "@adlr/sdk";
 import { ConfigLoader } from "../src/config-loader";
 import { InactivityTimer } from "../src/lifecycle";
 import { ProcessManager } from "../src/process-manager";
 import { startServer } from "../src/server";
+import { SQLiteStorage } from "../src/sqlite-storage";
 
 function createTestSocketPath(): { socketPath: string; tmpDir: string } {
 	const tmpDir = mkdtempSync(join(tmpdir(), "adlr-daemon-test-"));
