@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { existsSync, unlinkSync } from "node:fs";
 import { connect } from "node:net";
 import { setTimeout } from "node:timers/promises";
-import { SOCKET_PATH } from "@adlr/sdk";
+import { getSocketPath } from "@adlr/sdk";
 
 const DAEMON_START_TIMEOUT_MS = 5000;
 const DAEMON_POLL_INTERVAL_MS = 100;
@@ -21,11 +21,13 @@ async function canConnect(socketPath: string): Promise<boolean> {
 }
 
 export async function ensureDaemon(): Promise<void> {
-	if (existsSync(SOCKET_PATH)) {
-		if (await canConnect(SOCKET_PATH)) {
+	const socketPath = getSocketPath();
+
+	if (existsSync(socketPath)) {
+		if (await canConnect(socketPath)) {
 			return;
 		}
-		unlinkSync(SOCKET_PATH);
+		unlinkSync(socketPath);
 	}
 
 	const daemonPath = new URL("../../daemon/src/index.ts", import.meta.url)
@@ -78,7 +80,7 @@ export async function ensureDaemon(): Promise<void> {
 				: `Daemon was killed by signal ${exitSignal}`;
 			throw new Error(msg);
 		}
-		if (await canConnect(SOCKET_PATH)) {
+		if (await canConnect(socketPath)) {
 			return;
 		}
 	}
