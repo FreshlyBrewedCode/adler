@@ -314,6 +314,49 @@ describe("Client", () => {
 		client.close();
 	});
 
+	test("span.finish sends finish command with { id, data } payload", async () => {
+		const client = createClient(FAKE_SOCK);
+		const socket = await waitForSocket();
+
+		let receivedPayload: unknown;
+		const originalOnData = socket.listeners("data")[0] as (
+			data: Buffer,
+		) => void;
+		socket.removeListener("data", originalOnData);
+		socket.on("data", (data) => {
+			const text = data.toString();
+			for (const line of text.trim().split("\n")) {
+				if (!line) continue;
+				try {
+					const msg = JSON.parse(line);
+					if (msg.type === "span.finish") {
+						receivedPayload = msg.payload;
+						socket.write(
+							`${JSON.stringify({
+								type: "response",
+								id: msg.id,
+								payload: { success: true },
+							})}\n`,
+						);
+						return;
+					}
+				} catch {
+					// ignore
+				}
+			}
+			originalOnData(data);
+		});
+
+		await client.span.finish("span-1", { result: "ok" });
+
+		expect(receivedPayload).toEqual({
+			id: "span-1",
+			data: { result: "ok" },
+		});
+
+		client.close();
+	});
+
 	test("agent.run converts camelCase keys to snake_case", async () => {
 		const client = createClient(FAKE_SOCK);
 		const socket = await waitForSocket();
