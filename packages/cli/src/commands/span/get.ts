@@ -1,5 +1,4 @@
-import type { Span } from "@adlr/sdk";
-import { createClient } from "@adlr/sdk";
+import { createClient, type Span } from "@adlr/sdk";
 import { Command } from "commander";
 import { ensureDaemon } from "../../auto-start";
 
