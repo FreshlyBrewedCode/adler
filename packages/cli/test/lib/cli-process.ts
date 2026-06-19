@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -29,8 +29,9 @@ export class CliProcess {
 	}
 
 	private baseEnv(): Record<string, string> {
+		const { ADLR_SOCKET, ADLR_DB, ADLR_PID_FILE, ...rest } = process.env;
 		return {
-			...process.env,
+			...rest,
 			HOME: this.tmpDir,
 			XDG_DATA_HOME: join(this.tmpDir, ".local", "share"),
 			XDG_CONFIG_HOME: join(this.tmpDir, ".config"),
@@ -95,7 +96,7 @@ export class CliProcess {
 
 	async cleanup(): Promise<void> {
 		await this.stopDaemon();
-		if (this.proc && this.proc.pid) {
+		if (this.proc?.pid) {
 			try {
 				this.proc.kill();
 			} catch {}
