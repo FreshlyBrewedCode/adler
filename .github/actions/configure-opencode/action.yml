@@ -1,0 +1,19 @@
+name: Configure opencode
+description: Write an opencode config JSON file to the specified path
+
+inputs:
+  path:
+    description: Path to write the opencode config file
+    default: ~/.config/opencode/opencode.json
+  config:
+    description: JSON string with opencode configuration
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Write opencode config
+      shell: bash
+      run: |
+        mkdir -p "$(dirname "${{ inputs.path }}")"
+        echo '${{ inputs.config }}' > "${{ inputs.path }}"

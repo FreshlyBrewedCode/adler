@@ -28,6 +28,20 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Configure opencode
+        uses: ./.github/actions/configure-opencode
+        with:
+          config: |
+            {
+              "$schema": "https://opencode.ai/config.json",
+              "permission": {
+                "external_directory": {
+                  "*": "deny",
+                  "/tmp/**": "allow"
+                }
+              }
+            }
+
       - name: Run opencode
         uses: anomalyco/opencode/github@latest
         env:
