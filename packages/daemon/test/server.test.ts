@@ -2,11 +2,13 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { connect } from "node:net";
 import { dirname } from "node:path";
-import { SOCKET_PATH, SQLiteStorage } from "@adlr/sdk";
+import { getSocketPath, SQLiteStorage } from "@adlr/sdk";
 import { ConfigLoader } from "../src/config-loader";
 import { InactivityTimer } from "../src/lifecycle";
 import { ProcessManager } from "../src/process-manager";
 import { startServer } from "../src/server";
+
+const SOCKET_PATH = getSocketPath();
 
 interface DaemonResponse {
 	type: string;
