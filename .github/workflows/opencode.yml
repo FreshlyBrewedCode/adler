@@ -18,22 +18,51 @@ jobs:
       contains(fromJson('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
       contents: write
       pull-requests: write
       issues: write
+    env:
+      OPENCODE_MODEL: opencode-go/kimi-k2.7-code
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           persist-credentials: false
 
-      - name: Configure opencode
-        uses: ./.github/actions/configure-opencode
+      - name: Ensure GitHub CLI is available
+        run: gh --version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install opencode
+        run: npm install -g opencode-ai
+
+      - name: Build prompt
+        id: prompt
+        uses: actions/github-script@v7
         with:
-          config: |
+          script: |
+            const body = context.payload.comment.body;
+            const markerRegex = /(?:^|\s)(\/oc|\/opencode)(?=\s|$)/gi;
+            const userPrompt = body.replace(markerRegex, ' ').replace(/\s+/g, ' ').trim();
+
+            const isPR = !!context.payload.issue?.pull_request || context.eventName === 'pull_request_review_comment';
+            const number = context.payload.issue?.number ?? context.payload.pull_request?.number;
+
+            const instructions = isPR
+              ? `<context>You are responding to a comment on pull request #${number}</context>`
+              : `<context>You are responding to a comment on issue #${number}</context>`;
+
+            const fullPrompt = `${instructions}\n\n${userPrompt}`;
+            core.setOutput('prompt', fullPrompt);
+
+      - name: Run opencode
+        id: opencode
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENCODE_CONFIG_CONTENT: |
             {
-              "$schema": "https://opencode.ai/config.json",
               "permission": {
                 "external_directory": {
                   "*": "deny",
@@ -42,11 +71,22 @@ jobs:
               },
               "instructions": [".github/workflows/opencode-instructions.md"]
             }
+        run: |
+          log=$(opencode run \
+            --model $OPENCODE_MODEL \
+            --format json \
+            ${{ toJSON(steps.prompt.outputs.prompt) }} | tee /dev/fd/2)
+          delimiter=$(openssl rand -hex 16)
+          echo "log<<${delimiter}" >> "$GITHUB_OUTPUT"
+          echo "$log" >> "$GITHUB_OUTPUT"
+          echo "${delimiter}" >> "$GITHUB_OUTPUT"
 
-      - name: Run opencode
-        uses: anomalyco/opencode/github@latest
+      - name: Post response
         env:
-          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-        with:
-          model: opencode-go/kimi-k2.7-code
-          share: false
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENCODE_LOG: ${{ steps.opencode.outputs.log }}
+        run: |
+          target=${{ (github.event.issue.pull_request || github.event.pull_request) && 'pr' || 'issue' }}
+          number=${{ github.event.issue.number || github.event.pull_request.number }}
+
+          printf '%s\n' "$OPENCODE_LOG" | node .github/workflows/log2md.mjs - "$OPENCODE_MODEL" opencode | gh "$target" comment "$number" --body-file -
