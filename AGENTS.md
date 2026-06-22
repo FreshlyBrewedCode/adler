@@ -18,7 +18,7 @@ Agent orchestrator CLI with a TUI dashboard ("Eagle eyes on your agents"). Early
 - `bun typecheck` — `tsgo` (`@typescript/native-preview`)
 - Both root scripts delegate to all workspace packages via `--filter='*'`. They also exist per package.
 
-Important: Always run tests, lint and typecheck at the end of a coding task
+Important: Always run tests, lint and typecheck at the end of typescript coding task
 
 ## Monorepo structure
 
