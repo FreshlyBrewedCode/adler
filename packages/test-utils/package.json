@@ -1,5 +1,5 @@
 {
-	"name": "@adlr/plugin-opencode",
+	"name": "@adlr/test-utils",
 	"version": "0.1.0",
 	"type": "module",
 	"main": "src/index.ts",
@@ -8,17 +8,10 @@
 		".": "./src/index.ts"
 	},
 	"scripts": {
-		"test": "bun test",
 		"lint": "biome check .",
 		"typecheck": "tsgo --noEmit"
 	},
-	"peerDependencies": {
-		"@adlr/sdk": "workspace:*",
-		"@opencode-ai/plugin": ">=1.17.0"
-	},
 	"devDependencies": {
-		"@adlr/sdk": "workspace:*",
-		"@adlr/test-utils": "workspace:*",
 		"@types/node": "^20.0.0",
 		"@typescript/native-preview": "catalog:",
 		"bun-types": "latest"
