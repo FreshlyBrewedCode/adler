@@ -1,8 +1,9 @@
 import type {
 	ContextItemType,
-	CreateSpanInput,
 	SessionStatus,
 	Span,
+	SpanKind,
+	SpanStatus,
 	Storage,
 } from "@adlr/sdk";
 import { DAEMON_SESSION_ID } from "@adlr/sdk";
@@ -160,37 +161,50 @@ export async function handleCommand(
 		}
 
 		case "span.create": {
-			const data = payload as CreateSpanInput;
-			const span = await ctx.storage.createSpan(data);
-			ctx.broadcast(span.session_id, {
-				type: "span.created",
+			const data = payload as {
+				session_id: string;
+				parent_id?: string | null;
+				kind: SpanKind;
+				name: string;
+				status?: SpanStatus;
+				data?: Record<string, unknown>;
+			};
+			const span = await ctx.storage.createSpan({
+				session_id: data.session_id,
+				parent_id: data.parent_id,
+				kind: data.kind,
+				name: data.name,
+				status: data.status ?? "pending",
+				data: data.data,
+			});
+			ctx.broadcast(data.session_id, {
+				type: "span.started",
 				payload: {
-					session_id: span.session_id,
+					session_id: data.session_id,
 					span_id: span.id,
-					kind: span.kind,
-					name: span.name,
-					parent_id: span.parent_id,
+					kind: data.kind,
+					name: data.name,
+					parent_id: data.parent_id ?? null,
 				},
 			});
 			return span;
 		}
 
 		case "span.finish": {
-			const { id, data } = payload as {
+			const { id, status } = payload as {
 				id: string;
-				data?: Record<string, unknown>;
+				status?: "done" | "failed";
 			};
-			const existing = await ctx.storage.getSpan(id);
-			if (!existing) throw new Error(`Span not found: ${id}`);
-			const updatedData = data ? { ...existing.data, ...data } : existing.data;
+			const span = await ctx.storage.getSpan(id);
+			if (!span) throw new Error(`Span not found: ${id}`);
+			const finalStatus: SpanStatus = status ?? "done";
 			await ctx.storage.updateSpan(id, {
-				status: "done",
+				status: finalStatus,
 				finished_at: Date.now(),
-				data: updatedData,
 			});
-			ctx.broadcast(existing.session_id, {
-				type: "span.finished",
-				payload: { session_id: existing.session_id, span_id: id },
+			ctx.broadcast(span.session_id, {
+				type: finalStatus === "failed" ? "span.failed" : "span.finished",
+				payload: { session_id: span.session_id, span_id: id },
 			});
 			return { success: true };
 		}
