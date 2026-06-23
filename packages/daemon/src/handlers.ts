@@ -1,8 +1,9 @@
 import type {
 	ContextItemType,
-	CreateSpanInput,
 	SessionStatus,
 	Span,
+	SpanKind,
+	SpanStatus,
 	Storage,
 } from "@adlr/sdk";
 import { DAEMON_SESSION_ID } from "@adlr/sdk";
@@ -160,16 +161,30 @@ export async function handleCommand(
 		}
 
 		case "span.create": {
-			const data = payload as CreateSpanInput;
-			const span = await ctx.storage.createSpan(data);
-			ctx.broadcast(span.session_id, {
-				type: "span.created",
+			const data = payload as {
+				session_id: string;
+				parent_id?: string | null;
+				kind: SpanKind;
+				name: string;
+				status?: SpanStatus;
+				data?: Record<string, unknown>;
+			};
+			const span = await ctx.storage.createSpan({
+				session_id: data.session_id,
+				parent_id: data.parent_id,
+				kind: data.kind,
+				name: data.name,
+				status: data.status ?? "pending",
+				data: data.data,
+			});
+			ctx.broadcast(data.session_id, {
+				type: "span.started",
 				payload: {
-					session_id: span.session_id,
+					session_id: data.session_id,
 					span_id: span.id,
-					kind: span.kind,
-					name: span.name,
-					parent_id: span.parent_id,
+					kind: data.kind,
+					name: data.name,
+					parent_id: data.parent_id ?? null,
 				},
 			});
 			return span;
