@@ -6,10 +6,10 @@ inputs:
     description: opencode API key
     required: true
   app-id:
-    description: GitHub App ID for adlr-action
+    description: GitHub App ID — the app's permissions control what opencode can do at runtime
     required: true
   app-private-key:
-    description: GitHub App private key PEM for adlr-action
+    description: GitHub App private key PEM
     required: true
   model:
     description: opencode model to use
