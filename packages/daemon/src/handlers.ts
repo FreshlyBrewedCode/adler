@@ -191,21 +191,17 @@ export async function handleCommand(
 		}
 
 		case "span.finish": {
-			const { id, data } = payload as {
-				id: string;
-				data?: Record<string, unknown>;
-			};
-			const existing = await ctx.storage.getSpan(id);
-			if (!existing) throw new Error(`Span not found: ${id}`);
-			const updatedData = data ? { ...existing.data, ...data } : existing.data;
+			const { id, status } = payload as { id: string; status?: "done" | "failed" };
+			const span = await ctx.storage.getSpan(id);
+			if (!span) throw new Error(`Span not found: ${id}`);
+			const finalStatus: SpanStatus = status ?? "done";
 			await ctx.storage.updateSpan(id, {
-				status: "done",
+				status: finalStatus,
 				finished_at: Date.now(),
-				data: updatedData,
 			});
-			ctx.broadcast(existing.session_id, {
-				type: "span.finished",
-				payload: { session_id: existing.session_id, span_id: id },
+			ctx.broadcast(span.session_id, {
+				type: finalStatus === "failed" ? "span.failed" : "span.finished",
+				payload: { session_id: span.session_id, span_id: id },
 			});
 			return { success: true };
 		}
