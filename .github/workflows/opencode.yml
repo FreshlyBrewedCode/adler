@@ -33,6 +33,7 @@ jobs:
           opencode-api-key: ${{ secrets.OPENCODE_API_KEY }}
           app-id: ${{ secrets.ADLR_APP_ID }}
           app-private-key: ${{ secrets.ADLR_APP_PRIVATE_KEY }}
+          model: opencode-go/kimi-k2.7-code
           comment-body: ${{ github.event.comment.body }}
           issue-number: ${{ github.event.issue.number || github.event.pull_request.number }}
           is-pr: ${{ toJSON(!!github.event.issue.pull_request || github.event_name == 'pull_request_review_comment') }}
