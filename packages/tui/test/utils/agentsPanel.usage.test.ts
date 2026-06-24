@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { AgentSpan } from "@adlr/sdk";
+import type { AgentSpan, SpanUsage } from "@adlr/sdk";
 import { formatUsageSummary } from "../../src/utils/formatUsage";
 
 function makeAgentSpan(overrides?: Partial<AgentSpan["data"]>): AgentSpan {
@@ -28,8 +28,9 @@ describe("AgentsPanel — Card usage prop", () => {
 				cost_usd: 0.04,
 			},
 		});
-		expect(span.data.usage).toBeDefined();
-		expect(formatUsageSummary(span.data.usage!)).toBe("↑ 1.2k  ↓ 340  $0.04");
+		const usage = span.data.usage;
+		expect(usage).toBeDefined();
+		expect(formatUsageSummary(usage as SpanUsage)).toBe("↑ 1.2k  ↓ 340  $0.04");
 	});
 
 	it("data.usage is undefined when not provided", () => {
