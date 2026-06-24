@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	rmSync,
+	symlinkSync,
+	writeFileSync,
+} from "node:fs";
 import { join, resolve } from "node:path";
 import { createClient } from "@adlr/sdk";
 import { CliProcess } from "@adlr/test-utils";
@@ -105,45 +111,74 @@ describe("opencode plugin binary integration", () => {
 
 	let cli: CliProcess;
 	let projectDir: string;
+	let opencodeConfigDir: string;
 	let repoRoot: string;
+	let serveProc: ReturnType<typeof Bun.spawn> | null = null;
 
 	beforeEach(() => {
 		repoRoot = resolve(import.meta.dir, "../../../../");
 		cli = new CliProcess();
 		projectDir = mkdtempSync(join(cli.tmpDir, "project-"));
+
+		// Isolated opencode config dir under /tmp.
+		// We put @opencode-ai/plugin here so opencode can resolve the plugin
+		// package from .opencode/plugins/ without triggering an npm install.
+		opencodeConfigDir = mkdtempSync("/tmp/adlr-oc-cfg-");
+		const globalPluginDir = resolve(
+			// Use the real (pre-test-run) HOME to find the installed plugin
+			process.env.HOME ?? "~",
+			".config/opencode/node_modules/@opencode-ai/plugin",
+		);
+		mkdirSync(join(opencodeConfigDir, "node_modules/@opencode-ai"), {
+			recursive: true,
+		});
+		symlinkSync(
+			globalPluginDir,
+			join(opencodeConfigDir, "node_modules/@opencode-ai/plugin"),
+			"dir",
+		);
+
+		// Project .opencode: plugins/ dir + @adlr/sdk symlink.
 		const opencodeDir = join(projectDir, ".opencode");
 		const pluginsDir = join(opencodeDir, "plugins");
+		const adlrLinkDir = join(opencodeDir, "node_modules", "@adlr");
 		mkdirSync(pluginsDir, { recursive: true });
+		mkdirSync(adlrLinkDir, { recursive: true });
 
+		// Symlink @adlr/sdk so the plugin can resolve its imports without needing
+		// a full workspace install (which would fail on catalog references).
+		symlinkSync(
+			resolve(repoRoot, "packages/sdk"),
+			join(adlrLinkDir, "sdk"),
+			"dir",
+		);
+
+		// Plugin file: wraps the package under test.
 		const pluginSourcePath = resolve(
 			repoRoot,
 			"packages/plugins/opencode/src/index.ts",
 		);
-
-		// Local plugin: loads the package under test from source.
 		writeFileSync(
 			join(pluginsDir, "adlr.ts"),
-			`export { ObservabilityPlugin } from "${pluginSourcePath}";\n`,
-		);
-
-		// Symlink the SDK into opencode's node_modules so the plugin can resolve
-		// @adlr/sdk without needing a full install (which would fail on workspace
-		// catalog references).
-		const nodeModulesDir = join(opencodeDir, "node_modules");
-		const sdkLinkDir = join(nodeModulesDir, "@adlr");
-		mkdirSync(sdkLinkDir, { recursive: true });
-		symlinkSync(
-			resolve(repoRoot, "packages/sdk"),
-			join(sdkLinkDir, "sdk"),
-			"dir",
+			[
+				`import { ObservabilityPlugin as _P } from "${pluginSourcePath}";`,
+				`export const ObservabilityPlugin = async (ctx: unknown) => _P(ctx);`,
+			].join("\n"),
 		);
 	});
 
 	afterEach(async () => {
+		serveProc?.kill();
+		serveProc = null;
 		await cli.cleanup();
+		try {
+			rmSync(opencodeConfigDir, { recursive: true, force: true });
+		} catch {
+			// ignore cleanup errors
+		}
 	});
 
-	test("opencode loads the plugin and exits cleanly", async () => {
+	test("opencode run creates and finishes a span in the adlr daemon via the plugin", async () => {
 		const newResult = await cli.run(["new"], { cwd: projectDir });
 		expect(newResult.exitCode).toBe(0);
 		const match = newResult.stdout.match(/Created session (.+)/);
@@ -152,31 +187,115 @@ describe("opencode plugin binary integration", () => {
 		const sessionId = match![1];
 		const socketPath = join(cli.adlrDir, "adlr.sock");
 
-		const proc = Bun.spawn([opencodeBinary, "models"], {
-			cwd: projectDir,
-			env: {
-				...process.env,
-				HOME: cli.tmpDir,
-				ADLR_DIR: cli.adlrDir,
-				ADLR_SESSION: sessionId,
-				ADLR_SOCKET: socketPath,
+		// Strip any ADLR_* vars leaked from the daemon-integration test that runs
+		// first in this file, then inject the test-specific ones.
+		// Also strip HOME and XDG_* so the isolated HOME below takes effect.
+		const {
+			ADLR_SESSION: _s,
+			ADLR_SOCKET: _k,
+			ADLR_DIR: _d,
+			ADLR_DB: _b,
+			ADLR_PID_FILE: _p,
+			ADLR_SPAN_ID: _i,
+			HOME: _h,
+			XDG_CONFIG_HOME: _xch,
+			XDG_DATA_HOME: _xdh,
+			XDG_CACHE_HOME: _xcah,
+			XDG_STATE_HOME: _xsh,
+			...baseEnv
+		} = process.env;
+
+		// opencode serve + run --attach: run a dedicated opencode server for the
+		// project dir so our plugin loads in that server, then connect the run
+		// command to it.  Without this, opencode run (in piped/non-TTY mode) will
+		// auto-discover and reuse any already-running opencode server on the
+		// machine, which means the plugin never loads for the session.
+		//
+		// HOME is isolated so opencode's server-discovery heuristics don't find
+		// the developer's real opencode instance. OPENCODE_CONFIG_DIR points to
+		// our isolated dir (with the @opencode-ai/plugin symlink) so opencode can
+		// resolve the plugin package without an npm install.
+		const opencodeEnv = {
+			...baseEnv,
+			HOME: cli.tmpDir,
+			OPENCODE_CONFIG_DIR: opencodeConfigDir,
+			ADLR_DIR: cli.adlrDir,
+			ADLR_SESSION: sessionId,
+			ADLR_SOCKET: socketPath,
+		};
+
+		// Pick an ephemeral port for the opencode HTTP server.
+		const servePort = 19000 + Math.floor(Math.random() * 1000);
+		const serverUrl = `http://localhost:${servePort}`;
+
+		serveProc = Bun.spawn(
+			[opencodeBinary, "serve", "--port", String(servePort)],
+			{
+				cwd: projectDir,
+				env: opencodeEnv,
+				stdout: "pipe",
+				stderr: "pipe",
 			},
-			stdout: "pipe",
-			stderr: "pipe",
-		});
+		);
+
+		// Wait for the server to accept connections (up to 15 s).
+		let ready = false;
+		for (let i = 0; i < 30; i++) {
+			await new Promise((r) => setTimeout(r, 500));
+			try {
+				const res = await fetch(`${serverUrl}/api/session`);
+				if (res.ok) {
+					ready = true;
+					break;
+				}
+			} catch {
+				// not ready yet
+			}
+		}
+		expect(ready).toBe(true);
+
+		// Run opencode, attaching to our isolated server.
+		const runProc = Bun.spawn(
+			[
+				opencodeBinary,
+				"run",
+				"--attach",
+				serverUrl,
+				"--model",
+				"opencode/big-pickle",
+				"say DONE",
+			],
+			{
+				cwd: projectDir,
+				env: opencodeEnv,
+				stdout: "pipe",
+				stderr: "pipe",
+			},
+		);
 
 		const opencodeTimeout = setTimeout(() => {
-			proc.kill();
-		}, 60000);
+			runProc.kill();
+		}, 90000);
 
 		try {
-			await proc.exited;
+			await runProc.exited;
 		} finally {
 			clearTimeout(opencodeTimeout);
 		}
 
-		const stderr = await new Response(proc.stderr).text();
-		expect(proc.exitCode).toBe(0);
-		expect(stderr).not.toContain("error");
-	}, 60000);
+		expect(runProc.exitCode).toBe(0);
+
+		// The plugin should have created a root span named "opencode" and finished
+		// it when session.idle fired.
+		const client = createClient(socketPath);
+		try {
+			const spans = await client.span.list(sessionId);
+			const rootSpan = spans.find((s) => s.name === "opencode");
+			expect(rootSpan).toBeDefined();
+			expect(rootSpan?.status).toBe("done");
+			expect(rootSpan?.finished_at).not.toBeNull();
+		} finally {
+			client.close();
+		}
+	}, 90000);
 });
